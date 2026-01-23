@@ -132,35 +132,35 @@ public class FimpeCommand {
      * subir archivos
      */
     public void uploadFiles() throws FimpeException, FileManagerException {
-//        try {
-//            FileManager.deleteFolderContent(INPUT.getPath());
-//            FileManager.deleteFolderContent(OUTPUT.getPath());
-//            FileManager.deleteFolderContent(UPLOAD.getPath());
-//            //Mueve e archivo .DAT de /xml/ a /cifrado/input
-//            fileDAT = FileManager.moveFile(fileDAT, INPUT.getPath());
-//            //Encripta el archivo .DAT que se encuentre en /cifrado/input
-//            //y extrae la clave generada en la ultima linea de la respuesta de encriptacion
-//            String keyGenerated = encryptFile();
-//            //Inserta la clave generada al archvio .CC que esta en /xml/
-//            FileManager.insertKeyGeneratedToDocument(keyGenerated, fileCC);
-//            //Mueve el archivo .DAT de /cifrado/output a /upload/
-//            fileDAT = FileManager.moveFile(OUTPUT.getPath(), UPLOAD.getPath());
-//            //Mueve el archivo .CC de /xml/ a /upload/
-//            fileCC = FileManager.moveFile(fileCC, UPLOAD.getPath());
-//            logger.info("Ejecutando envio a FIMPE ");
-//            //Sube los archivos que se encuentran en /upload/
-//            uploadFilesCommand();
-//            logger.info("Fin de de envio a FIMPE ");
-//            //Mueve el archivo .DAT de cifrado/input sin cifrar a la carpeta dat_files
-//            FileManager.moveFile(INPUT.getPath(), FileManager.createFolder(routeId, DAT_FILES.getPath()));
-//            //Mueve los archivos procesados
-//            FileManager.moveFile(fileDAT, FileManager.createFolder(routeId, SENT_FILES.getPath()));
-//            //Mueve los archivos procesados
-//            FileManager.moveFile(fileCC, FileManager.createFolder(routeId, SENT_FILES.getPath()));
-//        } catch (FimpeException | FileManagerException ex) {
-//            FileManager.deleteFolderContent(XML.getPath());
-//            throw ex;
-//        }
+        try {
+            FileManager.deleteFolderContent(INPUT.getPath());
+            FileManager.deleteFolderContent(OUTPUT.getPath());
+            FileManager.deleteFolderContent(UPLOAD.getPath());
+            //Mueve e archivo .DAT de /xml/ a /cifrado/input
+            fileDAT = FileManager.moveFile(fileDAT, INPUT.getPath());
+            //Encripta el archivo .DAT que se encuentre en /cifrado/input
+            //y extrae la clave generada en la ultima linea de la respuesta de encriptacion
+            String keyGenerated = encryptFile();
+            //Inserta la clave generada al archvio .CC que esta en /xml/
+            FileManager.insertKeyGeneratedToDocument(keyGenerated, fileCC);
+            //Mueve el archivo .DAT de /cifrado/output a /upload/
+            fileDAT = FileManager.moveFile(OUTPUT.getPath(), UPLOAD.getPath());
+            //Mueve el archivo .CC de /xml/ a /upload/
+            fileCC = FileManager.moveFile(fileCC, UPLOAD.getPath());
+            logger.info("Ejecutando envio a FIMPE ");
+            //Sube los archivos que se encuentran en /upload/
+            uploadFilesCommand();
+            logger.info("Fin de de envio a FIMPE ");
+            //Mueve el archivo .DAT de cifrado/input sin cifrar a la carpeta dat_files
+            FileManager.moveFile(INPUT.getPath(), FileManager.createFolder(routeId, DAT_FILES.getPath()));
+            //Mueve los archivos procesados
+            FileManager.moveFile(fileDAT, FileManager.createFolder(routeId, SENT_FILES.getPath()));
+            //Mueve los archivos procesados
+            FileManager.moveFile(fileCC, FileManager.createFolder(routeId, SENT_FILES.getPath()));
+        } catch (FimpeException | FileManagerException ex) {
+            FileManager.deleteFolderContent(XML.getPath());
+            throw ex;
+        }
     }
     /**
      * Revisa si en una lista de respuestas existe el emensaje requerido

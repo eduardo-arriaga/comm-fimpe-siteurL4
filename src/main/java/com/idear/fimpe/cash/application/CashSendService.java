@@ -36,8 +36,6 @@ public class CashSendService {
     public int executeSend() {
 
         try {
-            logger.info("-------  Inicia la asignacion de transacciones de EFECTIVO, de rutas troncales a la ruta NI  ---------- ");
-            cashSQLRepository.updateTransactionsWithOutValidRoute();
             logger.info(" ----------- Inicia el envio de archivos de EFECTIVO ------------ ");
 
             LocalDate januaryFirst = LocalDate.of(2023, 1, 1);
