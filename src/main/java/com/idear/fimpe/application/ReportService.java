@@ -1,7 +1,11 @@
 package com.idear.fimpe.application;
 
+import com.idear.fimpe.cash.application.CashReportService;
+import com.idear.fimpe.cash.infraestructure.CashSQLServerRepository;
 import com.idear.fimpe.cet.application.CETReportService;
 import com.idear.fimpe.cet.infraestructure.CETSQLServerRepository;
+import com.idear.fimpe.counters.application.CountersReportService;
+import com.idear.fimpe.counters.infraestructure.CountersSQLServerRepository;
 import com.idear.fimpe.enums.Folder;
 import com.idear.fimpe.helpers.dates.DateHelper;
 import com.idear.fimpe.helpers.files.FileManager;
@@ -10,6 +14,8 @@ import com.idear.fimpe.database.SQLServerCommonRepository;
 import com.idear.fimpe.error.application.ErrorReportService;
 import com.idear.fimpe.error.infraestructure.ErrorSQLRepository;
 import com.idear.fimpe.excel.GeneralExcelReport;
+import com.idear.fimpe.kilometers.application.KilometersReportService;
+import com.idear.fimpe.kilometers.infraestructure.KilometersSQLServerRepository;
 import com.idear.fimpe.properties.PropertiesHelper;
 import com.idear.fimpe.torniquete.application.TorniqueteReportService;
 import com.idear.fimpe.torniquete.infraestructure.TorniqueteSQLServerRepository;
@@ -47,6 +53,18 @@ public class ReportService {
             logger.info("Generando reporte de Pendientes");
             UnansweredReportService unansweredReportService = new UnansweredReportService(new UnansweredSQLRepository(), workbook);
             unansweredReportService.createReport();
+
+            logger.info("Generando el reporte de efectivo");
+            CashReportService cashReportService = new CashReportService(new CashSQLServerRepository(), workbook);
+            cashReportService.createReport();
+
+            logger.info("Generando el reporte de kilometros");
+            KilometersReportService kilometersReportService = new KilometersReportService(new KilometersSQLServerRepository(), workbook);
+            kilometersReportService.createReport();
+
+            logger.info("Generando el reporte de contadores");
+            CountersReportService countersReportService = new CountersReportService(new CountersSQLServerRepository(), workbook);
+            countersReportService.createReport();
 
             logger.info("Generando reporte de Errores");
             ErrorReportService errorReportService = new ErrorReportService(new SQLServerCommonRepository(),
