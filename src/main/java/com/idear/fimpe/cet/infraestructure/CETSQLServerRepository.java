@@ -147,7 +147,7 @@ public class CETSQLServerRepository implements CETRepository {
                 "AND FechaHora BETWEEN ? AND ? " +
                 "AND TipoOperacion IN(?, ?) " +
                 "AND estado_respuesta_fimpe IN(?, ?) " +
-                "AND Clase NOT IN(9, 16, 50)";
+                "AND Clase NOT IN(9, 16, 31, 50)";
 
         try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
