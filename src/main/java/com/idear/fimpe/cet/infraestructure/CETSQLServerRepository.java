@@ -1,5 +1,6 @@
 package com.idear.fimpe.cet.infraestructure;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.enums.OperationType;
 import com.idear.fimpe.cet.domain.CETNumberControl;
 import com.idear.fimpe.cet.domain.CETReportRecord;
@@ -28,14 +29,15 @@ public class CETSQLServerRepository implements CETRepository {
         String query = "" +
                 "SELECT MIN(FechaHora) as FechaHora " +
                 "FROM wTransTarjetas wtt " +
-                "WHERE estado_respuesta_fimpe IN(?, ?) " +
+                "WHERE estado_respuesta_fimpe IN(?, ?, ?) " +
                 "AND TipoOperacion IN(?, ?)";
         try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 preparedStatement.setInt(1, NOT_SENT.getValue());
                 preparedStatement.setInt(2, SENT_WITH_ERROR.getValue());
-                preparedStatement.setInt(3, operationType.getValue());
-                preparedStatement.setInt(4, operationTypeTwo.getValue());
+                preparedStatement.setInt(3, CARD_OUT_OF_CATALOG.getValue());
+                preparedStatement.setInt(4, operationType.getValue());
+                preparedStatement.setInt(5, operationTypeTwo.getValue());
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
@@ -54,13 +56,14 @@ public class CETSQLServerRepository implements CETRepository {
         String query = "" +
                 "SELECT MIN(FechaHora) " +
                 "FROM wTransTarjetas wtt " +
-                "WHERE estado_respuesta_fimpe IN(?, ?) " +
+                "WHERE estado_respuesta_fimpe IN(?, ?, ?) " +
                 "AND TipoOperacion = ?";
         try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 preparedStatement.setInt(1, NOT_SENT.getValue());
                 preparedStatement.setInt(2, SENT_WITH_ERROR.getValue());
-                preparedStatement.setInt(3, operationType.getValue());
+                preparedStatement.setInt(3, CARD_OUT_OF_CATALOG.getValue());
+                preparedStatement.setInt(4, operationType.getValue());
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
@@ -140,13 +143,14 @@ public class CETSQLServerRepository implements CETRepository {
                 "idSAM, " +
                 "ConsecutivoSAM, " +
                 "FolioTarjeta, " +
-                "TipoDebito " +
+                "TipoDebito," +
+                "estado_respuesta_fimpe " +
                 "FROM wTransTarjetas " +
                 "WHERE Autobus = ? " +
                 "AND NumRuta = ? " +
                 "AND FechaHora BETWEEN ? AND ? " +
                 "AND TipoOperacion IN(?, ?) " +
-                "AND estado_respuesta_fimpe IN(?, ?) " +
+                "AND estado_respuesta_fimpe IN(?, ?, ?) " +
                 "AND Clase NOT IN(9, 16, 31, 50)";
 
         try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
@@ -159,6 +163,7 @@ public class CETSQLServerRepository implements CETRepository {
                 preparedStatement.setInt(6, DEBIT_OK_CET.getValue());
                 preparedStatement.setInt(7, NOT_SENT.getValue());
                 preparedStatement.setInt(8, SENT_WITH_ERROR.getValue());
+                preparedStatement.setInt(9, CARD_OUT_OF_CATALOG.getValue());
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     while (resultSet.next()) {
@@ -175,10 +180,11 @@ public class CETSQLServerRepository implements CETRepository {
                         String samTransactionCounter = resultSet.getString("ConsecutivoSAM");
                         Long cardTransactionCounter = resultSet.getLong("FolioTarjeta");
                         Integer debitType = resultSet.getInt("TipoDebito");
+                        FimpeStatus fimpeStatus = FimpeStatus.getFimpeStatus(resultSet.getInt("estado_respuesta_fimpe"));
 
                         CETTransaction transaction = new CETTransaction(transactionId, transactionDate, serialCard,
                                 product, transactionAmmount, initialBalance, finalBalance, initialBPD, finalBPD, samId, samTransactionCounter,
-                                cardTransactionCounter, debitType);
+                                cardTransactionCounter, debitType, fimpeStatus);
 
                         cetTransactionsList.add(transaction);
                     }
@@ -209,13 +215,14 @@ public class CETSQLServerRepository implements CETRepository {
                 "FolioTarjeta, " +
                 "TipoDebito, " +
                 "Autobus, " +
-                "NumRuta " +
+                "NumRuta," +
+                "estado_respuesta_fimpe " +
                 "FROM wTransTarjetas " +
                 "WHERE Autobus = ? " +
                 "AND NumRuta = ? " +
                 "AND FechaHora BETWEEN ? AND ? " +
                 "AND TipoOperacion = ? " +
-                "AND estado_respuesta_fimpe IN(?, ?) " +
+                "AND estado_respuesta_fimpe IN(?, ?, ?) " +
                 "AND Clase NOT IN(9, 16, 50) ";
 
         List<CETTransaction> transactionList = new ArrayList<>();
@@ -229,6 +236,7 @@ public class CETSQLServerRepository implements CETRepository {
                 preparedStatement.setInt(5, RECHARGE_OK_CET.getValue());
                 preparedStatement.setInt(6, NOT_SENT.getValue());
                 preparedStatement.setInt(7, SENT_WITH_ERROR.getValue());
+                preparedStatement.setInt(8, CARD_OUT_OF_CATALOG.getValue());
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     while (resultSet.next()) {
@@ -245,10 +253,11 @@ public class CETSQLServerRepository implements CETRepository {
                         String samTransactionCounter = resultSet.getString("ConsecutivoSAM");
                         Long cardTransactionCounter = resultSet.getLong("FolioTarjeta");
                         Integer debitType = resultSet.getInt("TipoDebito");
+                        FimpeStatus fimpeStatus = FimpeStatus.getFimpeStatus(resultSet.getInt("estado_respuesta_fimpe"));
 
                         CETTransaction transaction = new CETTransaction(transactionId, transactionDate, serialCard,
                                 product, transactionAmmount, initialBalance, finalBalance, initialBPD, finalBPD, samId, samTransactionCounter,
-                                cardTransactionCounter, debitType);
+                                cardTransactionCounter, debitType,fimpeStatus);
 
                         transactionList.add(transaction);
                     }

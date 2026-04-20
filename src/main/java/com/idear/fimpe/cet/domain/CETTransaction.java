@@ -1,5 +1,6 @@
 package com.idear.fimpe.cet.domain;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.enums.Product;
 
 import java.time.LocalDateTime;
@@ -21,10 +22,12 @@ public class CETTransaction {
     private Long cardTransactionCounter;
     private String debitType;//enum
     private String rechargeType;//enum
+    private FimpeStatus fimpeStatus;
 
     public CETTransaction(Long transactionId, LocalDateTime transactionDate, String serialCard, String product,
                           Float transactionAmmount, Float initialBalance, Float finalBalance, Float initialBPD, Float finalBBPD,
-                          String samId, String samTransactionCounter, Long cardTransactionCounter, Integer debitType) {
+                          String samId, String samTransactionCounter, Long cardTransactionCounter,
+                          Integer debitType,  FimpeStatus fimpeStatus) {
 
         this.transactionId = transactionId;
         this.transactionDate = transactionDate;
@@ -51,6 +54,7 @@ public class CETTransaction {
         }
 
         this.transactionFoil = generateFoil(serialCard, cardTransactionCounter);
+        this.fimpeStatus = fimpeStatus;
     }
 
     /**
@@ -158,5 +162,9 @@ public class CETTransaction {
 
     public String getRechargeType() {
         return rechargeType;
+    }
+
+    public FimpeStatus getFimpeStatus() {
+        return fimpeStatus;
     }
 }

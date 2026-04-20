@@ -1,5 +1,6 @@
 package com.idear.fimpe.torniquete.domain;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.enums.Product;
 
 import java.time.LocalDateTime;
@@ -21,12 +22,14 @@ public class TorniqueteTransaction {
     private Long cardTransactionCounter;
     private String debitType;//enum
     private String rechargeType;//enum
+    private FimpeStatus fimpeStatus;
 
     //Constructor para debitos de tarjeta
-    public TorniqueteTransaction(Long transactionId, LocalDateTime transactionDate, String serialCard, String product,
-                          Float transactionAmmount, Float initialBalance, Float finalBalance, Float initialBPD, Float finalBBPD,
-                          String samId, String samTransactionCounter, Long cardTransactionCounter, Integer debitType
-                          ) {
+    public TorniqueteTransaction(Long transactionId, LocalDateTime transactionDate, String serialCard,
+                                 String product, Float transactionAmmount, Float initialBalance,
+                                 Float finalBalance, Float initialBPD, Float finalBBPD,
+                                 String samId, String samTransactionCounter, Long cardTransactionCounter,
+                                 Integer debitType, FimpeStatus fimpeStatus) {
 
         this.transactionId = transactionId;
         this.transactionDate = transactionDate;
@@ -55,6 +58,7 @@ public class TorniqueteTransaction {
         }
 
         this.transactionFoil = generateFoil(serialCard, cardTransactionCounter);
+        this.fimpeStatus = fimpeStatus;
     }
 
     //Constructor para debitos de QR
@@ -198,5 +202,9 @@ public class TorniqueteTransaction {
 
     public Float getTransactionAmount() {
         return transactionAmount;
+    }
+
+    public FimpeStatus getFimpeStatus() {
+        return fimpeStatus;
     }
 }

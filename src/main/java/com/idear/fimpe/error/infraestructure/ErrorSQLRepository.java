@@ -1,6 +1,7 @@
 package com.idear.fimpe.error.infraestructure;
 
 import com.idear.fimpe.database.SQLServerDatabaseConnection;
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.error.domain.ErrorBusStation;
 import com.idear.fimpe.error.domain.ErrorRepository;
 import com.idear.fimpe.error.domain.ErrorTransaction;
@@ -12,6 +13,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class ErrorSQLRepository implements ErrorRepository {
 
@@ -231,6 +233,54 @@ public class ErrorSQLRepository implements ErrorRepository {
             }
         } catch (SQLException ex) {
             logger.error("Error al intentar conseguir informacion de la transaccion QR para crear el reporte", ex);
+        }
+    }
+
+    @Override
+    public void updateCetTransacctionsWithCardErrorWithoutCatalog(List<ErrorTransaction> cetTransactions) {
+        String query = "" +
+                "UPDATE wTransTarjetas " +
+                "SET estado_respuesta_fimpe = ? " +
+                "WHERE idElectronico = ? " +
+                "AND FolioTarjeta = ? ";
+
+        try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                for (ErrorTransaction errorTransaction : cetTransactions) {
+                    preparedStatement.setInt(1, FimpeStatus.CARD_OUT_OF_CATALOG.getValue());
+                    preparedStatement.setString(2, errorTransaction.getCardId());
+                    preparedStatement.setLong(3, errorTransaction.getCardFoil());
+                    preparedStatement.addBatch();
+                }
+                int transactionsUpdated = preparedStatement.executeBatch().length;
+                logger.info("{} transacciones actualizadas como fuera de catalogo", transactionsUpdated);
+            }
+        } catch (SQLException ex) {
+            logger.error("No se pudieron actualizar las transacciones como fuera de catalogo", ex);
+        }
+    }
+
+    @Override
+    public void updateStationTransacctionsWithCardErrorWithoutCatalog(List<ErrorTransaction> stationTransactions) {
+        String query = "" +
+                "UPDATE wTransAbonoDisp " +
+                "SET estado_respuesta_fimpe = ? " +
+                "WHERE CodigoFisico = ? " +
+                "AND FolioTarjeta = ? ";
+
+        try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                for (ErrorTransaction errorTransaction : stationTransactions) {
+                    preparedStatement.setInt(1, FimpeStatus.CARD_OUT_OF_CATALOG.getValue());
+                    preparedStatement.setString(2, errorTransaction.getCardId());
+                    preparedStatement.setLong(3, errorTransaction.getCardFoil());
+                    preparedStatement.addBatch();
+                }
+                int transactionsUpdated = preparedStatement.executeBatch().length;
+                logger.info("{} transacciones actualizadas como fuera de catalogo", transactionsUpdated);
+            }
+        } catch (SQLException ex) {
+            logger.error("No se pudieron actualizar las transacciones como fuera de catalogo", ex);
         }
     }
 }

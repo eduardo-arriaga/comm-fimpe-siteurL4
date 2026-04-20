@@ -1,5 +1,6 @@
 package com.idear.fimpe.torniquete.application;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.enums.OperationType;
 import com.idear.fimpe.enums.PrefixFile;
 import com.idear.fimpe.helpers.dates.DateHelper;
@@ -17,6 +18,7 @@ import java.io.File;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.idear.fimpe.enums.Device.TORNIQUETE;
 import static com.idear.fimpe.properties.PropertiesHelper.MAX_TRANSACTIONS_PER_FILE;
@@ -92,47 +94,64 @@ public class TorniqueteSendService {
                 logger.info("Finaliza la obtencion de transacciones");
 
                 if (!torniqueteTransactionNonExportedList.isEmpty()) {
+                    List<TorniqueteTransaction> torniqueteTransaccionsNewsOrWithError = torniqueteTransactionNonExportedList.stream()
+                            .filter(torniqueteTransaction -> torniqueteTransaction.getFimpeStatus().equals(FimpeStatus.NOT_SENT) ||
+                                    torniqueteTransaction.getFimpeStatus().equals(FimpeStatus.SENT_WITH_ERROR))
+                            .collect(Collectors.toList());
 
-                    //Empaca las transacciones
-                    List<TorniquteNumberControl> torniquteNumberControlListPackages =
-                            torniquteNumberControl.getTorniqueteNumberControlList(
-                                    torniqueteTransactionNonExportedList, MAX_TRANSACTIONS_PER_FILE);
+                    if (!torniqueteTransaccionsNewsOrWithError.isEmpty()) {
+                        logger.info("Se encontraron {} transacciones nuevas o con error", torniqueteTransaccionsNewsOrWithError.size());
+                        makeSent(torniquteNumberControl, torniqueteTransaccionsNewsOrWithError, dateStartLimitToSearch, dateEndLimitToSearch);
+                    }
 
-                    for (TorniquteNumberControl torniquteNumberControlPackage : torniquteNumberControlListPackages) {
-                        try {
-                            //Calcular datos necesarios para la generacion de archivos.
-                            torniquteNumberControlPackage.setCutId(commonRepository.getFoilCut());
-                            torniquteNumberControlPackage.setCutDate(LocalDateTime.now());
-                            torniquteNumberControlPackage.setInitialCutDate(dateStartLimitToSearch);
-                            torniquteNumberControlPackage.setFinalCutDate(dateEndLimitToSearch);
-                            torniquteNumberControlPackage.calculateNumberControl();
+                    List<TorniqueteTransaction> torniqueteTransaccionsCardOutOfCatalog = torniqueteTransactionNonExportedList.stream()
+                            .filter(torniqueteTransaction -> torniqueteTransaction.getFimpeStatus().equals(FimpeStatus.CARD_OUT_OF_CATALOG))
+                            .collect(Collectors.toList());
 
-                            //Generar los archivos XML y subirlos.
-                            logger.info("Generando archivos ");
-                            torniqueteFilesGenerator.generateFiles(torniquteNumberControlPackage, PrefixFile.DEBIT);
-                            fimpeCommand.setFileCC(torniqueteFilesGenerator.getNumberControlFile());
-                            fimpeCommand.setFileDAT(torniqueteFilesGenerator.getDataFile());
-                            fimpeCommand.setRouteId(torniquteNumberControlPackage.getRouteId() + File.separator + torniquteNumberControlPackage.getStationId());
-                            fimpeCommand.uploadFiles();
-
-                            //Actualizar transacciones enviadas,
-                            logger.info("Actualizando envios ");
-                            torniqueteRepository.updateTransactionsTorniquete(torniquteNumberControlPackage);
-                            commonRepository.insertFoilCut(torniquteNumberControlPackage.getCutId(), TORNIQUETE.getName(), TORNIQUETE_TABLE);
-
-                            logger.info("archivos {} y  {}  enviados correctamente",
-                                    torniqueteFilesGenerator.getNumberControlFile().getFileName(),
-                                    torniqueteFilesGenerator.getDataFile().getFileName());
-                            filesSent++; //Aumenta en 1 el valor de archivos enviados.
-                        } catch (SQLException | TorniqueteFilesGeneratorXMLException | FimpeException |
-                                 FileManagerException e) {
-                            logger.error("Error al intentar enviar los archivos debito TORNIQUETE ", e);
-                        }
+                    if (!torniqueteTransaccionsCardOutOfCatalog.isEmpty()) {
+                        logger.info("Se encontraron {} transacciones con tarjetas fuera de catalogo", torniqueteTransaccionsCardOutOfCatalog.size());
+                        makeSent(torniquteNumberControl, torniqueteTransaccionsCardOutOfCatalog, dateStartLimitToSearch, dateEndLimitToSearch);
                     }
                 }
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
+        }
+    }
+
+    private void makeSent(TorniquteNumberControl torniquteNumberControl,
+                          List<TorniqueteTransaction> torniqueteTransactions,
+                          LocalDateTime dateStartLimitToSearch, LocalDateTime dateFinalLimitToSearch) {
+        try {
+            torniquteNumberControl.setTorniqueteTransactions(torniqueteTransactions);
+
+            torniquteNumberControl.setCutDate(LocalDateTime.now());
+            torniquteNumberControl.setInitialCutDate(dateStartLimitToSearch);
+            torniquteNumberControl.setFinalCutDate(dateFinalLimitToSearch);
+            torniquteNumberControl.setCutId(commonRepository.getFoilCut());
+            torniquteNumberControl.calculateNumberControl();
+
+            logger.info("Generando archivo");
+
+            torniqueteFilesGenerator.generateFiles(torniquteNumberControl, PrefixFile.RECHARGE);
+
+            fimpeCommand.setFileCC(torniqueteFilesGenerator.getNumberControlFile());
+            fimpeCommand.setFileDAT(torniqueteFilesGenerator.getDataFile());
+            fimpeCommand.setRouteId(torniquteNumberControl.getRouteId() + File.separator + torniquteNumberControl.getStationId());
+
+            fimpeCommand.uploadFiles();
+
+            logger.info("Actualizando envios ");
+            torniqueteRepository.updateTransactionsTorniquete(torniquteNumberControl);
+
+            logger.info("archivos {} y {} enviados correctamente",
+                    torniqueteFilesGenerator.getNumberControlFile().getFileName().toString(),
+                    torniqueteFilesGenerator.getDataFile().getFileName().toString());
+            filesSent++;
+
+        } catch (SQLException | FileManagerException | FimpeException |
+                 TorniqueteFilesGeneratorXMLException e) {
+            logger.error("Error al intentar enviar los archivos debito TORNIQUETE ", e);
         }
     }
 

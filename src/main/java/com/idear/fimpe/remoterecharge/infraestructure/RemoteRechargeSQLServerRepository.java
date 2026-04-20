@@ -258,7 +258,7 @@ public class RemoteRechargeSQLServerRepository implements RemoteRechargeReposito
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     while (resultSet.next()) {
-                        Long packageId = resultSet.getLong("folio_corte_fimpe");
+                        Long packageId = resultSet.getLong("folioCorteFIMPE");
                         packagesWithNoAnswer.add(packageId);
                     }
                 }

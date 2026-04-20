@@ -1,5 +1,6 @@
 package com.idear.fimpe.torniquete.infraestructure;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.enums.OperationType;
 import com.idear.fimpe.database.SQLServerDatabaseConnection;
 import com.idear.fimpe.torniquete.domain.TorniqueteReportRecord;
@@ -33,16 +34,17 @@ public class TorniqueteSQLServerRepository implements TorniqueteRepository {
         String query = "" +
                 "SELECT MIN(FechaHora) as FechaHora " +
                 "FROM wTransAbonoDisp wtt " +
-                "WHERE estado_respuesta_fimpe IN(?, ?) " +
+                "WHERE estado_respuesta_fimpe IN(?, ?, ?) " +
                 "AND TipoOperacion IN(?, ?, ?)";
 
         try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 preparedStatement.setInt(1, NOT_SENT.getValue());
                 preparedStatement.setInt(2, SENT_WITH_ERROR.getValue());
-                preparedStatement.setInt(3, operationType.getValue());
-                preparedStatement.setInt(4, operationTypeTwo.getValue());
-                preparedStatement.setInt(5, operationTypeThree.getValue());
+                preparedStatement.setInt(3, CARD_OUT_OF_CATALOG.getValue());
+                preparedStatement.setInt(4, operationType.getValue());
+                preparedStatement.setInt(5, operationTypeTwo.getValue());
+                preparedStatement.setInt(6, operationTypeThree.getValue());
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
@@ -134,12 +136,13 @@ public class TorniqueteSQLServerRepository implements TorniqueteRepository {
                 "ContFinalSAM, " +
                 "FolioTarjeta, " +
                 "TipoDebito, " +
-                "Procesada " +
+                "Procesada," +
+                "estado_respuesta_fimpe " +
                 "FROM wTransAbonoDisp " +
                 "WHERE idDispositivo = ? " +
                 "AND FechaHora BETWEEN ? AND ? " +
                 "AND TipoOperacion IN(?, ?) " +
-                "AND estado_respuesta_fimpe  IN(?, ?) " +
+                "AND estado_respuesta_fimpe  IN(?, ?, ?) " +
                 "AND Clase NOT IN(9, 16, 50)";
 
         List<TorniqueteTransaction> torniqueteTransactionsNonExported = new ArrayList<>();
@@ -152,6 +155,7 @@ public class TorniqueteSQLServerRepository implements TorniqueteRepository {
                 preparedStatement.setInt(5, DEBIT_OK_GARITA.getValue());
                 preparedStatement.setInt(6, NOT_SENT.getValue());
                 preparedStatement.setInt(7, SENT_WITH_ERROR.getValue());
+                preparedStatement.setInt(8, CARD_OUT_OF_CATALOG.getValue());
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     while (resultSet.next()) {
@@ -165,6 +169,7 @@ public class TorniqueteSQLServerRepository implements TorniqueteRepository {
                         String samId = resultSet.getString("idSam");
                         Integer debitType = resultSet.getInt("tipoDebito");
                         Integer procesada = resultSet.getInt("Procesada");
+                        FimpeStatus fimpeStatus = FimpeStatus.getFimpeStatus(resultSet.getInt("estado_respuesta_fimpe"));
 
                         //Revisa y separa las trasacciones de QR de Hoozie
                         if (debitType == DEBIT_QR_OK_TORNIQUETE.getValue()) {
@@ -189,7 +194,7 @@ public class TorniqueteSQLServerRepository implements TorniqueteRepository {
 
                             TorniqueteTransaction transaction = new TorniqueteTransaction(transactionId, transactionDate,
                                     serialCard, product, transactionAmmount, initalBalance, finalBalance, bpdsInicial,
-                                    bpdsFinal, samId, samTransactionCounter, cardTransactionCounter, debitType);
+                                    bpdsFinal, samId, samTransactionCounter, cardTransactionCounter, debitType, fimpeStatus);
                             torniqueteTransactionsNonExported.add(transaction);
                         }
                     }
