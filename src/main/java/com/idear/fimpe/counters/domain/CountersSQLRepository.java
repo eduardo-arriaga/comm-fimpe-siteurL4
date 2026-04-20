@@ -17,4 +17,8 @@ public interface CountersSQLRepository {
     void updateErrorAckReceived(Long folioCut, LocalDateTime receivedDate) throws SQLException;
 
     List<CountersReportRecord> getCountersReportRecord(LocalDateTime starDate, LocalDateTime endDate);
+
+    List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer);
+
+    void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds);
 }

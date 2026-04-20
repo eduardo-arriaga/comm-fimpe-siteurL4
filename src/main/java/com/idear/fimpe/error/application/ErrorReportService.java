@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.idear.fimpe.enums.Device.*;
 import static com.idear.fimpe.enums.Folder.ERROR_ACK;
@@ -68,6 +69,35 @@ public class ErrorReportService {
 
         ErrorNumberControlReportExcel errorNumberControlReportExcel = new ErrorNumberControlReportExcel(errorNumberControlList, workbook);
         errorNumberControlReportExcel.createTable();
+
+        checkIfThereAreCardErrorsWithoutCatalog(errorTransactionList);
+    }
+
+    private void checkIfThereAreCardErrorsWithoutCatalog(List<ErrorTransaction> errorTransactionList) {
+        String errorDescriptionToCheck = "El campo [c3-Identificador de tarjeta] con valor";
+
+        List<ErrorTransaction> cetTransactions = errorTransactionList
+                .stream()
+                .filter(errorTransaction ->
+                        errorTransaction.getErrorDescription().startsWith(errorDescriptionToCheck) && !errorTransaction.isStationTransaction())
+                .collect(Collectors.toList());
+
+        if(!cetTransactions.isEmpty()){
+            logger.warn("Se encontraron {} errores de tarjeta fuera de catalogo en archivos de CET", cetTransactions.size());
+            errorRepository.updateCetTransacctionsWithCardErrorWithoutCatalog(cetTransactions);
+        }
+
+        List<ErrorTransaction> stationTransactions = errorTransactionList
+                .stream()
+                .filter(errorTransaction ->
+                        errorTransaction.getErrorDescription().startsWith(errorDescriptionToCheck) && errorTransaction.isStationTransaction())
+                .collect(Collectors.toList());
+
+        if(!cetTransactions.isEmpty()){
+            logger.warn("Se encontraron {} errores de tarjeta fuera de catalogo en archivos de Estacion", stationTransactions.size());
+            errorRepository.updateStationTransacctionsWithCardErrorWithoutCatalog(stationTransactions);
+        }
+
     }
 
     private List<ErrorTransactionReportExcel> groupErrorTransaccions(List<ErrorTransaction> errorTransactionList, Workbook workbook) {
@@ -130,6 +160,7 @@ public class ErrorReportService {
                     }
                 } else {
                     errorRepository.getStationTransactionInfo(errorTransaction);
+                    errorTransaction.setStationTransaction(true);
                 }
             }
         }

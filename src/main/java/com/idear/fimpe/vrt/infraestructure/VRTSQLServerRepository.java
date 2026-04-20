@@ -1,5 +1,6 @@
 package com.idear.fimpe.vrt.infraestructure;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.enums.OperationType;
 import com.idear.fimpe.enums.Product;
 import com.idear.fimpe.database.SQLServerDatabaseConnection;
@@ -63,7 +64,7 @@ public class VRTSQLServerRepository implements VRTRepository {
                 "FROM wTransAbonoDisp " +
                 "WHERE  idDispositivo = ? " +
                 "AND TipoOperacion IN(?, ?, ?) " +
-                "AND estado_respuesta_fimpe IN(?, ?)";
+                "AND estado_respuesta_fimpe IN(?, ?, ?)";
         try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 preparedStatement.setLong(1, deviceId);
@@ -72,6 +73,7 @@ public class VRTSQLServerRepository implements VRTRepository {
                 preparedStatement.setInt(4, SELL_OK_VRT.getValue());
                 preparedStatement.setInt(5, NOT_SENT.getValue());
                 preparedStatement.setInt(6, SENT_WITH_ERROR.getValue());
+                preparedStatement.setInt(7, CARD_OUT_OF_CATALOG.getValue());
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
@@ -107,12 +109,13 @@ public class VRTSQLServerRepository implements VRTRepository {
                 "ContFinalSAM, " +
                 "FolioTarjeta, " +
                 "TipoDebito, " +
-                "TipoOperacion " +
+                "TipoOperacion," +
+                "estado_respuesta_fimpe " +
                 "FROM wTransAbonoDisp  " +
                 "WHERE idDispositivo = ? " +
                 "AND FechaHora BETWEEN ? AND ? " +
                 "AND TipoOperacion IN(?, ?, ?, ?, ?) " +
-                "AND estado_respuesta_fimpe IN(?, ?) " +
+                "AND estado_respuesta_fimpe IN(?, ?, ?) " +
                 "AND MontoEvento > 0";//Para no traerse las recargas en 0 despues de vender
 
         List<VRTTransaction> vrtTransactions = new ArrayList<>();
@@ -128,6 +131,7 @@ public class VRTSQLServerRepository implements VRTRepository {
                 preparedStatement.setInt(8, SELL_OK_VRT.getValue());
                 preparedStatement.setInt(9, NOT_SENT.getValue());
                 preparedStatement.setInt(10, SENT_WITH_ERROR.getValue());
+                preparedStatement.setInt(11, CARD_OUT_OF_CATALOG.getValue());
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     while (resultSet.next()) {
@@ -141,6 +145,7 @@ public class VRTSQLServerRepository implements VRTRepository {
                         Float finalBalance = Math.abs(resultSet.getFloat("SaldoFinal"));
                         String samId = resultSet.getString("idSAM");
                         Long cardTransactionCounter = resultSet.getLong("FolioTarjeta");
+                        FimpeStatus fimpeStatus = FimpeStatus.getFimpeStatus(resultSet.getInt("estado_respuesta_fimpe"));
 
                         if (operationType == RECHARGE_OK_VRT.getValue() ||
                                 operationType == REMOTE_RECHARGE_OK_VRT.getValue()) {
@@ -151,7 +156,7 @@ public class VRTSQLServerRepository implements VRTRepository {
 
                             vrtTransaction = new VRTTransaction(transactionId, RECHARGE_OK_VRT, transactionDate,
                                     serialCard, transactionAmmount, samId, productId, initialBalance, finalBalance,
-                                    samTransactionCounter, cardTransactionCounter, rechargeType);
+                                    samTransactionCounter, cardTransactionCounter, rechargeType, fimpeStatus);
 
                             vrtTransactions.add(vrtTransaction);
 
@@ -176,7 +181,8 @@ public class VRTSQLServerRepository implements VRTRepository {
                                     moneyEndDateTime.toLocalTime());
 
                             vrtTransaction = new VRTTransaction(transactionId, SELL_OK_VRT, transactionDate, serialCard,
-                                    cardTransactionCounter, transactionAmmount, samId, profile, creditProductSale, moneyProductSale);
+                                    cardTransactionCounter, transactionAmmount, samId, profile, creditProductSale,
+                                    moneyProductSale, fimpeStatus);
 
                             vrtTransactions.add(vrtTransaction);
                         } else if (operationType.equals(RECHARGE_QR_OK_VRT.getValue()) ||
@@ -365,6 +371,61 @@ public class VRTSQLServerRepository implements VRTRepository {
             }
         } catch (SQLException ex) {
             logger.error("Error al intentar conseguir el reporte de envios de la VRT " + deviceId, ex);
+        }
+    }
+
+    @Override
+    public List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer) {
+        List<Long> packagesWithNoAnswer = new ArrayList<>();
+
+        String query = "" +
+                "SELECT DISTINCT folio_corte_fimpe " +
+                "FROM wTransAbonoDisp " +
+                "WHERE estado_respuesta_fimpe  = ? " +
+                "AND TipoOperacion IN(?, ?, ?, ?) " +
+                "AND DATEADD(DAY, ?, fecha_envio_fimpe) <= GETDATE()";
+
+        try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                preparedStatement.setInt(1, SENT_AND_PENDIENT.getValue());
+                preparedStatement.setInt(2, RECHARGE_OK_VRT.getValue());
+                preparedStatement.setInt(3, REMOTE_RECHARGE_OK_VRT.getValue());
+                preparedStatement.setInt(4, RECHARGE_QR_OK_VRT.getValue());
+                preparedStatement.setInt(5, RECHARGE_QR_OK_COMMISSION_VRT.getValue());
+                preparedStatement.setInt(6, daysToConsiderNoAnswer);
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        Long packageId = resultSet.getLong("folio_corte_fimpe");
+                        packagesWithNoAnswer.add(packageId);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            logger.error("No se pudo conseguir informacion sobre los paquetes que han siguen pendientes de respuesta", ex);
+        }
+        return packagesWithNoAnswer;
+    }
+
+    @Override
+    public void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds) {
+        String query = "" +
+                "UPDATE wTransAbonoDisp " +
+                "SET estado_respuesta_fimpe = ? " +
+                "WHERE folio_corte_fimpe = ? ";
+
+        try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                for (Long packageId : packagesIds) {
+                    preparedStatement.setInt(1, NOT_SENT.getValue());
+                    preparedStatement.setLong(2, packageId);
+                    preparedStatement.addBatch();
+                }
+                int transactionsUpdated = preparedStatement.executeBatch().length;
+                logger.info("{} paquetes actualizados para reenvio", transactionsUpdated);
+            }
+        } catch (SQLException ex) {
+            logger.error("No se pudo actualizar los paquetes para reenvio", ex);
         }
     }
 }

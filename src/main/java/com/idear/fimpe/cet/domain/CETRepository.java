@@ -29,4 +29,8 @@ public interface CETRepository {
     void collectCETReportRecordInfo(List<CETReportRecord> cetReportRecordList, LocalDateTime startDate, LocalDateTime endDate);
 
     void updateTransactionsWithOutValidRoute();
+
+    List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer);
+
+    void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds);
 }

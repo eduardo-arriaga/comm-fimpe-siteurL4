@@ -1,10 +1,12 @@
 package com.idear.fimpe.vrt.application;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.helpers.dates.DateHelper;
 import com.idear.fimpe.helpers.files.FileManagerException;
 import com.idear.fimpe.database.CommonRepository;
 import com.idear.fimpe.fimpetransport.FimpeCommand;
 import com.idear.fimpe.fimpetransport.FimpeException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import com.idear.fimpe.vrt.domain.VRTFilesGenerator;
 import com.idear.fimpe.vrt.domain.VRTNumberControl;
 import com.idear.fimpe.vrt.domain.VRTRepository;
@@ -17,6 +19,7 @@ import java.io.File;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.idear.fimpe.enums.Device.VRT;
 import static com.idear.fimpe.properties.PropertiesHelper.MAX_TRANSACTIONS_PER_FILE;
@@ -41,6 +44,10 @@ public class VRTSendService {
     public int send() {
         try {
             logger.info(" --------- Inicia el proceso de envios de la VRT ----------");
+
+            logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+            checkIfThereAreTransactionsWithNoAnswer();
+
             List<VRTNumberControl> vrtNumberControls = vrtRepository.getStations();
             for (VRTNumberControl vrtNumberControl : vrtNumberControls) {
 
@@ -56,34 +63,23 @@ public class VRTSendService {
                 logger.info("Obtencion de transacciones finalizada");
                 if (!vrtTransactions.isEmpty()) {
 
-                    List<VRTNumberControl> vrtNumberControlListPackages =
-                            vrtNumberControl.getVRTNumberControlList(vrtTransactions, MAX_TRANSACTIONS_PER_FILE);
+                    List<VRTTransaction> vrtTransaccionsNewsOrWithError = vrtTransactions.stream()
+                            .filter(vrtTransaction -> vrtTransaction.getFimpeStatus().equals(FimpeStatus.NOT_SENT) ||
+                                    vrtTransaction.getFimpeStatus().equals(FimpeStatus.SENT_WITH_ERROR))
+                            .collect(Collectors.toList());
 
-                    for (VRTNumberControl vrtNumberControlPackage : vrtNumberControlListPackages) {
-                        try {
-                            vrtNumberControlPackage.setCutId(commonRepository.getFoilCut());
-                            vrtNumberControlPackage.setCutDate(LocalDateTime.now());
-                            vrtNumberControlPackage.setInitialCutDate(dateStartLimitToSearch);
-                            vrtNumberControlPackage.setFinalCutDate(dateEndLimitToSearch);
-                            vrtNumberControlPackage.calculateNumberControl();
-                            logger.info("Generando archivos ");
-                            vrtFilesGenerator.generateFiles(vrtNumberControlPackage);
-                            fimpeCommand.setFileCC(vrtFilesGenerator.getNumberControlFile());
-                            fimpeCommand.setFileDAT(vrtFilesGenerator.getDataFile());
-                            fimpeCommand.setRouteId(vrtNumberControlPackage.getRouteId() + File.separator + vrtNumberControlPackage.getStationId());
-                            fimpeCommand.uploadFiles();
-                            logger.info("Actualizando envios ");
-                            vrtRepository.updateTransactionsSent(vrtNumberControlPackage);
-                            commonRepository.insertFoilCut(vrtNumberControlPackage.getCutId(), VRT.getName(), VRT_TABLE);
+                    if (!vrtTransaccionsNewsOrWithError.isEmpty()) {
+                        logger.info("Se encontraron {} transacciones nuevas o con error", vrtTransaccionsNewsOrWithError.size());
+                        makeSent(vrtNumberControl, vrtTransaccionsNewsOrWithError, dateStartLimitToSearch, dateEndLimitToSearch);
+                    }
 
-                            logger.info("archivos  {} y {} enviados correctamente",
-                                    vrtFilesGenerator.getNumberControlFile().getFileName(),
-                                    vrtFilesGenerator.getDataFile().getFileName());
-                            filesProceced++;
-                        } catch (SQLException | VRTFilesGeneratorXMLException | FileManagerException |
-                                 FimpeException ex) {
-                            logger.error("Error al intentar enviar los archivos venta/recarga VRT ", ex);
-                        }
+                    List<VRTTransaction> vrtTransaccionsCardOutOfCatalog = vrtTransactions.stream()
+                            .filter(torniqueteTransaction -> torniqueteTransaction.getFimpeStatus().equals(FimpeStatus.CARD_OUT_OF_CATALOG))
+                            .collect(Collectors.toList());
+
+                    if (!vrtTransaccionsCardOutOfCatalog.isEmpty()) {
+                        logger.info("Se encontraron {} transacciones con tarjetas fuera de catalogo", vrtTransaccionsCardOutOfCatalog.size());
+                        makeSent(vrtNumberControl, vrtTransaccionsCardOutOfCatalog, dateStartLimitToSearch, dateEndLimitToSearch);
                     }
                 }
             }
@@ -91,5 +87,49 @@ public class VRTSendService {
             logger.error(e.getMessage());
         }
         return filesProceced;
+    }
+
+    private void makeSent(VRTNumberControl vrtNumberControl,
+                          List<VRTTransaction> vrtTransactions,
+                          LocalDateTime dateStartLimitToSearch, LocalDateTime dateFinalLimitToSearch) {
+        try {
+            vrtNumberControl.setVrtTransactions(vrtTransactions);
+
+            vrtNumberControl.setCutDate(LocalDateTime.now());
+            vrtNumberControl.setInitialCutDate(dateStartLimitToSearch);
+            vrtNumberControl.setFinalCutDate(dateFinalLimitToSearch);
+            vrtNumberControl.setCutId(commonRepository.getFoilCut());
+            vrtNumberControl.calculateNumberControl();
+
+            logger.info("Generando archivo");
+
+            vrtFilesGenerator.generateFiles(vrtNumberControl);
+
+            fimpeCommand.setFileCC(vrtFilesGenerator.getNumberControlFile());
+            fimpeCommand.setFileDAT(vrtFilesGenerator.getDataFile());
+            fimpeCommand.setRouteId(vrtNumberControl.getRouteId() + File.separator + vrtNumberControl.getStationId());
+
+            fimpeCommand.uploadFiles();
+
+            logger.info("Actualizando envios ");
+            vrtRepository.updateTransactionsSent(vrtNumberControl);
+
+            logger.info("archivos {} y {} enviados correctamente",
+                    vrtFilesGenerator.getNumberControlFile().getFileName().toString(),
+                    vrtFilesGenerator.getDataFile().getFileName().toString());
+            filesProceced++;
+
+        } catch (SQLException | FileManagerException | FimpeException |
+                 VRTFilesGeneratorXMLException e) {
+            logger.error("Error al intentar enviar los archivos debito TORNIQUETE ", e);
+        }
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = vrtRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            vrtRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.idear.fimpe.cet.application;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.enums.OperationType;
 import com.idear.fimpe.enums.PrefixFile;
 import com.idear.fimpe.helpers.dates.DateHelper;
@@ -9,12 +10,14 @@ import com.idear.fimpe.cet.infraestructure.CETFilesGeneratorXMLException;
 import com.idear.fimpe.database.CommonRepository;
 import com.idear.fimpe.fimpetransport.FimpeCommand;
 import com.idear.fimpe.fimpetransport.FimpeException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.idear.fimpe.enums.Device.CET;
 import static com.idear.fimpe.properties.PropertiesHelper.MAX_TRANSACTIONS_PER_FILE;
@@ -37,6 +40,9 @@ public class CETSendService {
     }
 
     public int executeSend() {
+        logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+        checkIfThereAreTransactionsWithNoAnswer();
+
         logger.info("-------  Inicia el envio de debitos CET  ---------- ");
         executeDebitSends();
         logger.info("-------- Inicia el envio de recargas CET --------- ");
@@ -66,47 +72,75 @@ public class CETSendService {
                                 cetNumberControl, dateStartLimitToSearch, dateFinalLimitToSearch);
 
                 if (!cetTransactions.isEmpty()) {
-                    try {
-                        //HAce diferentes paquetes segun el maximo de transacciones
-                        List<CETNumberControl> cetNumberControlExtraPackages =
-                                cetNumberControl.getCETNumberControlList(cetTransactions, MAX_TRANSACTIONS_PER_FILE);
+                    List<CETTransaction> cetTransactionsNewsOrWithError = cetTransactions.stream()
+                            .filter(transaction -> transaction.getFimpeStatus() == FimpeStatus.NOT_SENT || transaction.getFimpeStatus() == FimpeStatus.SENT_WITH_ERROR)
+                            .collect(Collectors.toList());
 
-                        for (CETNumberControl cetNumberControlPackage : cetNumberControlExtraPackages) {
+                    if (!cetTransactionsNewsOrWithError.isEmpty()) {
+                        logger.info("Se encontraron {} transacciones nuevas o con error", cetTransactionsNewsOrWithError.size());
+                        makeSent(cetNumberControl, cetTransactionsNewsOrWithError, dateStartLimitToSearch, dateFinalLimitToSearch, PrefixFile.DEBIT);
+                    }
 
-                            cetNumberControlPackage.setCutDate(LocalDateTime.now());
-                            cetNumberControlPackage.setInitialCutDate(dateStartLimitToSearch);
-                            cetNumberControlPackage.setFinalCutDate(dateFinalLimitToSearch);
-                            cetNumberControlPackage.setCutId(commonRepository.getFoilCut());
-                            cetNumberControlPackage.calculateNumberControlDebit();
+                    List<CETTransaction> cetTransactionsWithCardOutOfCatalog = cetTransactions.stream()
+                            .filter(transaction -> transaction.getFimpeStatus() == FimpeStatus.CARD_OUT_OF_CATALOG)
+                            .collect(Collectors.toList());
 
-                            logger.info("Generando archivo para el autobus {}", cetNumberControlPackage.getBusId());
-                            cetFilesGenerator.generateFiles(cetNumberControlPackage, PrefixFile.DEBIT);
-
-                            fimpeCommand.setFileCC(cetFilesGenerator.getNumberControlFile());
-                            fimpeCommand.setFileDAT(cetFilesGenerator.getDataFile());
-                            fimpeCommand.setRouteId(cetNumberControlPackage.getRouteIdDescription());
-
-                            fimpeCommand.uploadFiles();
-                            logger.info("Actualizando envios ");
-                            cetRepository.updateTransactionsSent(cetNumberControlPackage);
-                            commonRepository.insertFoilCut(cetNumberControlPackage.getCutId(), CET.getName(), CET_TABLE);
-                            logger.info("archivos {} y {} enviados correctamente",
-                                    cetFilesGenerator.getNumberControlFile().getFileName().toString(),
-                                    cetFilesGenerator.getDataFile().getFileName().toString());
-                            filesSent++;
-                        }
-
-                    } catch (SQLException e) {
-                        logger.error("Error al intentar obtener informacion para envio de debito del CET ", e);
-                    } catch (CETFilesGeneratorXMLException e) {
-                        logger.error("Error al intentar generar los archivos de debito ", e);
-                    } catch (FileManagerException | FimpeException e) {
-                        logger.error("Error al intentar subir los archivos de debito ", e);
+                    if (!cetTransactionsWithCardOutOfCatalog.isEmpty()) {
+                        logger.info("Se encontraron {} transacciones con tarjeta fuera de catalogo", cetTransactionsWithCardOutOfCatalog.size());
+                        makeSent(cetNumberControl, cetTransactionsWithCardOutOfCatalog, dateStartLimitToSearch, dateFinalLimitToSearch, PrefixFile.DEBIT);
                     }
                 }
+
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
+        }
+    }
+
+    private void makeSent(CETNumberControl cetNumberControl, List<CETTransaction> cetTransactions,
+                          LocalDateTime dateStartLimitToSearch, LocalDateTime dateFinalLimitToSearch,
+                          PrefixFile prefixFile) {
+        try {
+            //Hace diferentes paquetes segun el maximo de transacciones
+            List<CETNumberControl> cetNumberControlExtraPackages =
+                    cetNumberControl.getCETNumberControlList(cetTransactions, MAX_TRANSACTIONS_PER_FILE);
+
+            for (CETNumberControl cetNumberControlPackage : cetNumberControlExtraPackages) {
+
+                cetNumberControlPackage.setCutDate(LocalDateTime.now());
+                cetNumberControlPackage.setInitialCutDate(dateStartLimitToSearch);
+                cetNumberControlPackage.setFinalCutDate(dateFinalLimitToSearch);
+                cetNumberControlPackage.setCutId(commonRepository.getFoilCut());
+
+                if (prefixFile.equals(PrefixFile.DEBIT))
+                    cetNumberControlPackage.calculateNumberControlDebit();
+                else
+                    cetNumberControlPackage.calculateNumberControlRecharge();
+
+                logger.info("Generando archivo para el autobus {}", cetNumberControlPackage.getBusId());
+                cetFilesGenerator.generateFiles(cetNumberControlPackage, prefixFile);
+
+                fimpeCommand.setFileCC(cetFilesGenerator.getNumberControlFile());
+                fimpeCommand.setFileDAT(cetFilesGenerator.getDataFile());
+                fimpeCommand.setRouteId(cetNumberControlPackage.getRouteIdDescription());
+
+                fimpeCommand.uploadFiles();
+
+                logger.info("Actualizando envios ");
+                cetRepository.updateTransactionsSent(cetNumberControlPackage);
+
+                logger.info("archivos {} y {} enviados correctamente",
+                        cetFilesGenerator.getNumberControlFile().getFileName().toString(),
+                        cetFilesGenerator.getDataFile().getFileName().toString());
+                filesSent++;
+            }
+
+        } catch (SQLException e) {
+            logger.error("Error al intentar obtener informacion para envio del CET ", e);
+        } catch (CETFilesGeneratorXMLException e) {
+            logger.error("Error al intentar generar los archivos", e);
+        } catch (FileManagerException | FimpeException e) {
+            logger.error("Error al intentar subir los archivos ", e);
         }
     }
 
@@ -129,47 +163,35 @@ public class CETSendService {
                         cetRepository.getRechargeTransactions(
                                 cetNumberControl, dateStartLimitToSearch, dateFinalLimitToSearch);
                 if (!cetTransactions.isEmpty()) {
+                    List<CETTransaction> cetTransactionsNewsOrWithError = cetTransactions.stream()
+                            .filter(transaction -> transaction.getFimpeStatus() == FimpeStatus.NOT_SENT || transaction.getFimpeStatus() == FimpeStatus.SENT_WITH_ERROR)
+                            .collect(Collectors.toList());
 
-                    //Divide los paquetes segun el maximo
-                    List<CETNumberControl> cetNumberControlExtraPackages =
-                            cetNumberControl.getCETNumberControlList(cetTransactions, MAX_TRANSACTIONS_PER_FILE);
-
-                    for (CETNumberControl cetNumberControlPackage : cetNumberControlExtraPackages) {
-                        try {
-                            cetNumberControlPackage.setCutDate(LocalDateTime.now());
-                            cetNumberControlPackage.setInitialCutDate(dateStartLimitToSearch);
-                            cetNumberControlPackage.setFinalCutDate(dateFinalLimitToSearch);
-                            cetNumberControlPackage.setCutId(commonRepository.getFoilCut());
-                            cetNumberControlPackage.calculateNumberControlRecharge();
-                            logger.info("Generando archivo para el autobus {}", cetNumberControlPackage.getBusId());
-                            cetFilesGenerator.generateFiles(cetNumberControlPackage, PrefixFile.RECHARGE);
-
-                            fimpeCommand.setFileCC(cetFilesGenerator.getNumberControlFile());
-                            fimpeCommand.setFileDAT(cetFilesGenerator.getDataFile());
-                            fimpeCommand.setRouteId(cetNumberControlPackage.getRouteIdDescription());
-
-                            fimpeCommand.uploadFiles();
-                            logger.info("Actualizando envios ");
-                            cetRepository.updateTransactionsSent(cetNumberControlPackage);
-                            commonRepository.insertFoilCut(cetNumberControlPackage.getCutId(), CET.getName(), CET_TABLE);
-                            logger.info("archivos {} y {} enviados correctamente",
-                                    cetFilesGenerator.getNumberControlFile().getFileName().toString(),
-                                    cetFilesGenerator.getDataFile().getFileName().toString());
-                            filesSent++;
-
-                        } catch (SQLException e) {
-                            logger.error("Error al intentar obtener informacion para envio de debito del CET ", e);
-                        } catch (CETFilesGeneratorXMLException e) {
-                            logger.error("Error al intentar generar los archivos de debito ", e);
-                        } catch (FileManagerException | FimpeException e) {
-                            logger.error("Error al intentar subir los archivos de debito ", e);
-                        }
+                    if (!cetTransactionsNewsOrWithError.isEmpty()) {
+                        logger.info("Se encontraron {} transacciones nuevas o con error", cetTransactionsNewsOrWithError.size());
+                        makeSent(cetNumberControl, cetTransactionsNewsOrWithError, dateStartLimitToSearch, dateFinalLimitToSearch, PrefixFile.DEBIT);
                     }
 
+                    List<CETTransaction> cetTransactionsWithCardOutOfCatalog = cetTransactions.stream()
+                            .filter(transaction -> transaction.getFimpeStatus() == FimpeStatus.CARD_OUT_OF_CATALOG)
+                            .collect(Collectors.toList());
+
+                    if (!cetTransactionsWithCardOutOfCatalog.isEmpty()) {
+                        logger.info("Se encontraron {} transacciones con tarjeta fuera de catalogo", cetTransactionsWithCardOutOfCatalog.size());
+                        makeSent(cetNumberControl, cetTransactionsWithCardOutOfCatalog, dateStartLimitToSearch, dateFinalLimitToSearch, PrefixFile.DEBIT);
+                    }
                 }
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
+        }
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = cetRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            cetRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
         }
     }
 }

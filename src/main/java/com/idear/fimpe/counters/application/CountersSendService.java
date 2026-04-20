@@ -8,6 +8,7 @@ import com.idear.fimpe.counters.domain.CountersSQLRepository;
 import com.idear.fimpe.counters.infraestructure.CountersFileGeneratorException;
 import com.idear.fimpe.fimpetransport.FimpeCommand;
 import com.idear.fimpe.fimpetransport.FimpeException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,10 @@ public class CountersSendService {
 
         try {
             logger.info(" ----------- Inicia el envio de archivos de CONTADORES ------------ ");
+
+            logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+            checkIfThereAreTransactionsWithNoAnswer();
+
             LocalDate yesterday = LocalDate.now().minusDays(1);
             //La fecha inicial para buscar
             LocalDateTime starDate = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
@@ -77,5 +82,13 @@ public class CountersSendService {
             logger.error(e.getMessage());
         }
         return filesSent;
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = countersSQLRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            countersSQLRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
+        }
     }
 }

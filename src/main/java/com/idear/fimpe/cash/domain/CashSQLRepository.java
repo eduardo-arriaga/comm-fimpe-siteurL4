@@ -19,4 +19,8 @@ public interface CashSQLRepository {
     List<CashReportRecord> getCashReportRecord(LocalDateTime startDate, LocalDateTime endDate);
 
     void updateTransactionsWithOutValidRoute();
+
+    List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer);
+
+    void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds);
 }

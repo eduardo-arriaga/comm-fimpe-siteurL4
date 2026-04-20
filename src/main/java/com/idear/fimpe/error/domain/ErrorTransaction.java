@@ -17,6 +17,7 @@ public class ErrorTransaction {
     private Integer cardClass;
     private String errorDescription;
     private String fileName;
+    private boolean isStationTransaction;
 
     public ErrorTransaction(Long cutFoil, String cardId, Long cardFoil, String errorDescription, String fileName) {
         this.cutFoil = cutFoil;
@@ -76,6 +77,14 @@ public class ErrorTransaction {
 
     public String getFileName() {
         return fileName;
+    }
+
+    public boolean isStationTransaction() {
+        return isStationTransaction;
+    }
+
+    public void setStationTransaction(boolean stationTransaction) {
+        isStationTransaction = stationTransaction;
     }
 
     public static List<String> getHeaders(){

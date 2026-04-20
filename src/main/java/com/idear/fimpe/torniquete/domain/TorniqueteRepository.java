@@ -23,4 +23,8 @@ public interface TorniqueteRepository {
     List<TorniqueteReportRecord> getTorniqueteReportRecord();
 
     void collectTorniqueteRecordsReport(LocalDateTime startDate, LocalDateTime endDate, List<TorniqueteReportRecord> torniqueteReportRecordList);
+
+    List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer);
+
+    void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds);
 }

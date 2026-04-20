@@ -18,4 +18,8 @@ public interface RemoteRechargeRepository {
     void updateSuccessfulAckReceived(Long folioCut) throws SQLException;
 
     void updateErrorAckReceived(Long folioCut) throws SQLException;
+
+    List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer);
+
+    void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds);
 }

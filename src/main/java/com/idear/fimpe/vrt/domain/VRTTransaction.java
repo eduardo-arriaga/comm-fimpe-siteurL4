@@ -1,5 +1,6 @@
 package com.idear.fimpe.vrt.domain;
 
+import com.idear.fimpe.enums.FimpeStatus;
 import com.idear.fimpe.enums.OperationType;
 import com.idear.fimpe.enums.Product;
 
@@ -29,11 +30,12 @@ public class VRTTransaction {
     private String samTransactionCounter;
     private Long cardTransactionCounter;
     private String rechargeType;
+    private FimpeStatus fimpeStatus;
 
     //utilizado para las ventas
     public VRTTransaction(Long transactionId, OperationType operationType, LocalDateTime transactionDate, String serialCard,
                           Long cardTransactionCounter, Float transactionAmmount, String samId, String profile,
-                          ProductSale productCreditId, ProductSale productMoneyId) {
+                          ProductSale productCreditId, ProductSale productMoneyId, FimpeStatus fimpeStatus) {
 
         this.transactionId = transactionId;
         this.operationType = operationType;
@@ -45,12 +47,14 @@ public class VRTTransaction {
         this.productCreditId = productCreditId;
         this.productMoneyId = productMoneyId;
         this.transactionFoil = generateFoil(serialCard, cardTransactionCounter);
+        this.fimpeStatus = fimpeStatus;
     }
 
     //utilizado para las recargas
     public VRTTransaction(Long transactionId, OperationType operationType, LocalDateTime transactionDate, String serialCard,
                           Float transactionAmmount, String samId, String productId, Float initialBalance,
-                          Float finalBalance, String samTransactionCounter, Long cardTransactionCounter, Integer rechargeType) {
+                          Float finalBalance, String samTransactionCounter, Long cardTransactionCounter, Integer rechargeType,
+                          FimpeStatus fimpeStatus) {
         this.transactionId = transactionId;
         this.operationType = operationType;
         this.transactionDate = transactionDate;
@@ -64,6 +68,7 @@ public class VRTTransaction {
         this.cardTransactionCounter = cardTransactionCounter;
         this.rechargeType = getFIMPEFormatOperation(rechargeType);
         this.transactionFoil = generateFoil(serialCard, cardTransactionCounter);
+        this.fimpeStatus = fimpeStatus;
     }
 
     //Utilizado para las recargas QR
@@ -195,5 +200,9 @@ public class VRTTransaction {
 
     public OperationType getOperationType() {
         return operationType;
+    }
+
+    public FimpeStatus getFimpeStatus() {
+        return fimpeStatus;
     }
 }

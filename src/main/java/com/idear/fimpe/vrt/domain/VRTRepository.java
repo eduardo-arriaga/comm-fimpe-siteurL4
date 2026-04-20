@@ -21,4 +21,8 @@ public interface VRTRepository {
     List<VRTReportRecord> getVRTReportRecord();
 
     void collectVRTReportRecordInfo(LocalDateTime startDate, LocalDateTime endDate, List<VRTReportRecord> vrtReportRecordList);
+
+    List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer);
+
+    void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds);
 }
