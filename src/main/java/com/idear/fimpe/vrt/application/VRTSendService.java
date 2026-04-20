@@ -5,6 +5,7 @@ import com.idear.fimpe.helpers.files.FileManagerException;
 import com.idear.fimpe.database.CommonRepository;
 import com.idear.fimpe.fimpetransport.FimpeCommand;
 import com.idear.fimpe.fimpetransport.FimpeException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import com.idear.fimpe.vrt.domain.VRTFilesGenerator;
 import com.idear.fimpe.vrt.domain.VRTNumberControl;
 import com.idear.fimpe.vrt.domain.VRTRepository;
@@ -41,6 +42,10 @@ public class VRTSendService {
     public int send() {
         try {
             logger.info(" --------- Inicia el proceso de envios de la VRT ----------");
+
+            logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+            checkIfThereAreTransactionsWithNoAnswer();
+
             List<VRTNumberControl> vrtNumberControls = vrtRepository.getStations();
             for (VRTNumberControl vrtNumberControl : vrtNumberControls) {
 
@@ -91,5 +96,13 @@ public class VRTSendService {
             logger.error(e.getMessage());
         }
         return filesProceced;
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = vrtRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            vrtRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
+        }
     }
 }

@@ -8,6 +8,7 @@ import com.idear.fimpe.cash.domain.CashSQLRepository;
 import com.idear.fimpe.cash.infraestructure.CashFilesGeneratorException;
 import com.idear.fimpe.fimpetransport.FimpeCommand;
 import com.idear.fimpe.fimpetransport.FimpeException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,9 @@ public class CashSendService {
 
         try {
             logger.info(" ----------- Inicia el envio de archivos de EFECTIVO ------------ ");
+
+            logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+            checkIfThereAreTransactionsWithNoAnswer();
 
             LocalDate januaryFirst = LocalDate.of(2023, 1, 1);
             LocalDate yesterday = LocalDate.now().minusDays(1);
@@ -80,5 +84,13 @@ public class CashSendService {
             logger.error(e.getMessage());
         }
         return filesSent;
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = cashSQLRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            cashSQLRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
+        }
     }
 }

@@ -9,6 +9,7 @@ import com.idear.fimpe.cet.infraestructure.CETFilesGeneratorXMLException;
 import com.idear.fimpe.database.CommonRepository;
 import com.idear.fimpe.fimpetransport.FimpeCommand;
 import com.idear.fimpe.fimpetransport.FimpeException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,9 @@ public class CETSendService {
     }
 
     public int executeSend() {
+        logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+        checkIfThereAreTransactionsWithNoAnswer();
+
         logger.info("-------  Inicia el envio de debitos CET  ---------- ");
         executeDebitSends();
         logger.info("-------- Inicia el envio de recargas CET --------- ");
@@ -170,6 +174,14 @@ public class CETSendService {
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
+        }
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = cetRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            cetRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
         }
     }
 }

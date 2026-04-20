@@ -7,6 +7,7 @@ import com.idear.fimpe.helpers.files.FileManagerException;
 import com.idear.fimpe.database.CommonRepository;
 import com.idear.fimpe.fimpetransport.FimpeCommand;
 import com.idear.fimpe.fimpetransport.FimpeException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import com.idear.fimpe.torniquete.domain.*;
 import com.idear.fimpe.torniquete.infraestructure.TorniqueteFilesGeneratorXMLException;
 import org.slf4j.Logger;
@@ -53,6 +54,10 @@ public class TorniqueteSendService {
      */
     public int executeSend() {
         logger.info(" ----------- Inicia el envio de torniquetes ------------ ");
+
+        logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+        checkIfThereAreTransactionsWithNoAnswer();
+
         executeDebitSends();
         return filesSent;
     }
@@ -128,6 +133,14 @@ public class TorniqueteSendService {
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
+        }
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = torniqueteRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            torniqueteRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
         }
     }
 }

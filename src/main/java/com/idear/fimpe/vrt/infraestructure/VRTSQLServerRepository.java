@@ -367,4 +367,59 @@ public class VRTSQLServerRepository implements VRTRepository {
             logger.error("Error al intentar conseguir el reporte de envios de la VRT " + deviceId, ex);
         }
     }
+
+    @Override
+    public List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer) {
+        List<Long> packagesWithNoAnswer = new ArrayList<>();
+
+        String query = "" +
+                "SELECT DISTINCT folio_corte_fimpe " +
+                "FROM wTransAbonoDisp " +
+                "WHERE estado_respuesta_fimpe  = ? " +
+                "AND TipoOperacion IN(?, ?, ?, ?) " +
+                "AND DATEADD(DAY, ?, fecha_envio_fimpe) <= GETDATE()";
+
+        try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                preparedStatement.setInt(1, SENT_AND_PENDIENT.getValue());
+                preparedStatement.setInt(2, RECHARGE_OK_VRT.getValue());
+                preparedStatement.setInt(3, REMOTE_RECHARGE_OK_VRT.getValue());
+                preparedStatement.setInt(4, RECHARGE_QR_OK_VRT.getValue());
+                preparedStatement.setInt(5, RECHARGE_QR_OK_COMMISSION_VRT.getValue());
+                preparedStatement.setInt(6, daysToConsiderNoAnswer);
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        Long packageId = resultSet.getLong("folio_corte_fimpe");
+                        packagesWithNoAnswer.add(packageId);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            logger.error("No se pudo conseguir informacion sobre los paquetes que han siguen pendientes de respuesta", ex);
+        }
+        return packagesWithNoAnswer;
+    }
+
+    @Override
+    public void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds) {
+        String query = "" +
+                "UPDATE wTransAbonoDisp " +
+                "SET estado_respuesta_fimpe = ? " +
+                "WHERE folio_corte_fimpe = ? ";
+
+        try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                for (Long packageId : packagesIds) {
+                    preparedStatement.setInt(1, NOT_SENT.getValue());
+                    preparedStatement.setLong(2, packageId);
+                    preparedStatement.addBatch();
+                }
+                int transactionsUpdated = preparedStatement.executeBatch().length;
+                logger.info("{} paquetes actualizados para reenvio", transactionsUpdated);
+            }
+        } catch (SQLException ex) {
+            logger.error("No se pudo actualizar los paquetes para reenvio", ex);
+        }
+    }
 }

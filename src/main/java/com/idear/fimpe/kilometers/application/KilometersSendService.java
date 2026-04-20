@@ -8,6 +8,7 @@ import com.idear.fimpe.kilometers.domain.KilometersFilesGenerator;
 import com.idear.fimpe.kilometers.domain.KilometersNumberControl;
 import com.idear.fimpe.kilometers.domain.KilometersSQLRepository;
 import com.idear.fimpe.kilometers.infraestructure.KilometersFileGeneratorException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +40,9 @@ public class KilometersSendService {
 
         try {
             logger.info(" ----------- Inicia el envio de archivos de KILOMETROS ------------ ");
+
+            logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+            checkIfThereAreTransactionsWithNoAnswer();
             //La fecha inicial para buscar
             LocalDate yesterday = LocalDate.now().minusDays(1);
             LocalDateTime starDate = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
@@ -80,5 +84,13 @@ public class KilometersSendService {
             logger.error(e.getMessage());
         }
         return filesSent;
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = kilometersSQLRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            kilometersSQLRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
+        }
     }
 }

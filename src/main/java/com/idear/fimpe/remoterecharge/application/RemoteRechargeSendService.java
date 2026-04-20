@@ -3,6 +3,7 @@ package com.idear.fimpe.remoterecharge.application;
 import com.idear.fimpe.helpers.files.FileManagerException;
 import com.idear.fimpe.fimpetransport.FimpeCommand;
 import com.idear.fimpe.fimpetransport.FimpeException;
+import com.idear.fimpe.properties.PropertiesHelper;
 import com.idear.fimpe.remoterecharge.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,10 @@ public class RemoteRechargeSendService {
 
         try {
             logger.info(" ----------- Inicia el envio de archivos de RECARGA REMOTA ------------ ");
+
+            logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
+            checkIfThereAreTransactionsWithNoAnswer();
+
             List<RemoteRechargeTransaction> remoteRechargeUnRequestedList = remoteRechargeRepository.getUnrequestedRemoteRecharge();
             List<RemoteRechargeTransaction> remoteRechargeConfirmedList = remoteRechargeRepository.getConfirmedRemoteRecharge();
 
@@ -68,5 +73,13 @@ public class RemoteRechargeSendService {
             logger.error(e.getMessage());
         }
         return 0;
+    }
+
+    private void checkIfThereAreTransactionsWithNoAnswer() {
+        List<Long> packagesIds = remoteRechargeRepository.getPackagesWithNoAnswer(PropertiesHelper.DAYS_TO_CONSIDER_NO_ANSWER);
+        if (!packagesIds.isEmpty()) {
+            logger.info("Se encontraron {} paquetes sin respuesta de FIMPE, se actualizaran para reenvio", packagesIds.size());
+            remoteRechargeRepository.updatePackagesWithNoAnswerAsNews(packagesIds);
+        }
     }
 }

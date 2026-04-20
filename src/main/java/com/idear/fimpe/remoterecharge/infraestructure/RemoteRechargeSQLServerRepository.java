@@ -240,4 +240,54 @@ public class RemoteRechargeSQLServerRepository implements RemoteRechargeReposito
         preparedStatement.setInt(5, actionNumberAppliedToProduct);
         preparedStatement.addBatch();
     }
+
+    @Override
+    public List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer) {
+        List<Long> packagesWithNoAnswer = new ArrayList<>();
+
+        String query = "" +
+                "SELECT DISTINCT folioCorteFIMPE " +
+                "FROM wRecargasRemotas " +
+                "WHERE estadoRespuestaFIMPE  = ? " +
+                "AND DATEADD(DAY, ?, fechaEnvioFIMPE) <= GETDATE()";
+
+        try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                preparedStatement.setInt(1, SENT_AND_PENDIENT.getValue());
+                preparedStatement.setInt(2, daysToConsiderNoAnswer);
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        Long packageId = resultSet.getLong("folio_corte_fimpe");
+                        packagesWithNoAnswer.add(packageId);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            logger.error("No se pudo conseguir informacion sobre los paquetes que han siguen pendientes de respuesta", ex);
+        }
+        return packagesWithNoAnswer;
+    }
+
+    @Override
+    public void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds) {
+        String query = "" +
+                "UPDATE wRecargasRemotas " +
+                "SET estadoRespuestaFIMPE = ? " +
+                "WHERE folioCorteFIMPE = ? ";
+
+        try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                for (Long packageId : packagesIds) {
+                    preparedStatement.setInt(1, NOT_SENT.getValue());
+                    preparedStatement.setLong(2, packageId);
+                    preparedStatement.addBatch();
+                }
+                int transactionsUpdated = preparedStatement.executeBatch().length;
+                logger.info("{} paquetes actualizados para reenvio", transactionsUpdated);
+            }
+        } catch (SQLException ex) {
+            logger.error("No se pudo actualizar los paquetes para reenvio", ex);
+        }
+    }
 }

@@ -14,10 +14,6 @@ public class PropertiesHelper {
     public static String DB_USER;
     public static String DB_PASSWORD;
 
-    public static String DB_HOST_LP;
-    public static String DB_NAME_LP;
-    public static String DB_USER_LP;
-    public static String DB_PASSWORD_LP;
     public static String MAX_LOG_FILES;
     public static String MAX_SIZE_FILE_LOG;
     public static String TECHNOLOGIC_PROVIDER_ID;
@@ -26,6 +22,7 @@ public class PropertiesHelper {
     public static int DOWNLOAD_ATTEMPTS;
     public static int MAX_TRANSACTIONS_PER_FILE = 1000;
     public static int WAIT_TIME_TO_DOWNLOAD;
+    public static int DAYS_TO_CONSIDER_NO_ANSWER = 5;
 
     public static void loadProperties(String configPathFile) throws IOException {
         Properties properties = new Properties();
@@ -48,6 +45,7 @@ public class PropertiesHelper {
         TECHNOLOGIC_PROVIDER_ID = properties.getProperty(PropertiesApp.TECHNOLOGIC_PROVIDER_ID.name()).trim();
         DOWNLOAD_ATTEMPTS = Integer.parseInt(properties.getProperty(PropertiesApp.DOWNLOAD_ATTEMPTS.name(), "10").trim());
         WAIT_TIME_TO_DOWNLOAD = Integer.parseInt(properties.getProperty(PropertiesApp.WAIT_TIME_TO_DOWNLOAD.name(), "2"));
+        DAYS_TO_CONSIDER_NO_ANSWER = Integer.parseInt(properties.getProperty(PropertiesApp.DAYS_TO_CONSIDER_NO_ANSWER.name(), "7").trim());
     }
 
     //Nombre de las propiedades en el archivo
@@ -62,6 +60,7 @@ public class PropertiesHelper {
         MAX_SIZE_FILE_LOG,
         TECHNOLOGIC_PROVIDER_ID,
         DOWNLOAD_ATTEMPTS,
-        WAIT_TIME_TO_DOWNLOAD;
+        WAIT_TIME_TO_DOWNLOAD,
+        DAYS_TO_CONSIDER_NO_ANSWER;
     }
 }

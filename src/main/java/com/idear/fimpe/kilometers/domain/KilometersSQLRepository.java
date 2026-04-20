@@ -19,4 +19,8 @@ public interface KilometersSQLRepository {
     void updateErrorAckReceived(Long folioCut, LocalDateTime receivedDate) throws SQLException;
 
     List<KilometersReportRecord> getKilometersReportRecord(LocalDateTime starDate, LocalDateTime endDate);
+
+    List<Long> getPackagesWithNoAnswer(int daysToConsiderNoAnswer);
+
+    void updatePackagesWithNoAnswerAsNews(List<Long> packagesIds);
 }
