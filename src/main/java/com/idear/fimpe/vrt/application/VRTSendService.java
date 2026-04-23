@@ -113,6 +113,8 @@ public class VRTSendService {
 
             logger.info("Actualizando envios ");
             vrtRepository.updateTransactionsSent(vrtNumberControl);
+            logger.info("Insertando corte nuevo");
+            commonRepository.insertFoilCut(vrtNumberControl.getCutId(), VRT.name(), VRT_TABLE);
 
             logger.info("archivos {} y {} enviados correctamente",
                     vrtFilesGenerator.getNumberControlFile().getFileName().toString(),

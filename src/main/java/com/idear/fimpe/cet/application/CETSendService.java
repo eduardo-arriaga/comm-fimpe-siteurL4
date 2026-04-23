@@ -128,6 +128,8 @@ public class CETSendService {
 
                 logger.info("Actualizando envios ");
                 cetRepository.updateTransactionsSent(cetNumberControlPackage);
+                logger.info("Insertando corte nuevo");
+                commonRepository.insertFoilCut(cetNumberControlPackage.getCutId(), CET.name(), CET_TABLE);
 
                 logger.info("archivos {} y {} enviados correctamente",
                         cetFilesGenerator.getNumberControlFile().getFileName().toString(),
