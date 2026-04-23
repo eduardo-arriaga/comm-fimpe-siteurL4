@@ -143,6 +143,8 @@ public class TorniqueteSendService {
 
             logger.info("Actualizando envios ");
             torniqueteRepository.updateTransactionsTorniquete(torniquteNumberControl);
+            logger.info("Insertando corte nuevo");
+            commonRepository.insertFoilCut(torniquteNumberControl.getCutId(), TORNIQUETE.name(), TORNIQUETE_TABLE);
 
             logger.info("archivos {} y {} enviados correctamente",
                     torniqueteFilesGenerator.getNumberControlFile().getFileName().toString(),
