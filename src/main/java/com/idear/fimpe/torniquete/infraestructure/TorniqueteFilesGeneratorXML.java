@@ -49,22 +49,20 @@ public class TorniqueteFilesGeneratorXML implements TorniqueteFilesGenerator {
 
     /**
      * Genera los archivos XML CC y DAT.
+     *
      * @param torniqueteNumberControl
      * @param prefixFile
      * @throws TorniqueteFilesGeneratorXMLException
      */
     @Override
-    public void generateFiles(TorniquteNumberControl torniqueteNumberControl, PrefixFile prefixFile) throws TorniqueteFilesGeneratorXMLException {
-
-        if (prefixFile.equals(PrefixFile.DEBIT)) {
-            String fileNumberControlName = generateFileName(torniqueteNumberControl, PrefixFile.DEBIT, ExtentionFile.NUMBER_CONTROL);
-            String fileDataName = generateFileName(torniqueteNumberControl, PrefixFile.DEBIT, ExtentionFile.DATA);
-            try {
-                fileNumberControl = generateDebitNumberControl(torniqueteNumberControl, fileNumberControlName);
-                fileData = generateDebitData(torniqueteNumberControl, fileDataName);
-            } catch (ParserConfigurationException | TransformerException e) {
-                throw new TorniqueteFilesGeneratorXMLException("Error al intentar generar los pares de archivos " + fileNumberControlName);
-            }
+    public void generateFiles(TorniquteNumberControl torniqueteNumberControl) throws TorniqueteFilesGeneratorXMLException {
+        String fileNumberControlName = generateFileName(torniqueteNumberControl, PrefixFile.DEBIT, ExtentionFile.NUMBER_CONTROL);
+        String fileDataName = generateFileName(torniqueteNumberControl, PrefixFile.DEBIT, ExtentionFile.DATA);
+        try {
+            fileNumberControl = generateDebitNumberControl(torniqueteNumberControl, fileNumberControlName);
+            fileData = generateDebitData(torniqueteNumberControl, fileDataName);
+        } catch (ParserConfigurationException | TransformerException e) {
+            throw new TorniqueteFilesGeneratorXMLException("Error al intentar generar los pares de archivos " + fileNumberControlName);
         }
 
     }
@@ -81,6 +79,7 @@ public class TorniqueteFilesGeneratorXML implements TorniqueteFilesGenerator {
 
     /**
      * Genera archivo .DAT
+     *
      * @param torniquteNumberControl
      * @param debitFileDataName
      * @return Ubicacion del archivo .DAT
@@ -187,6 +186,7 @@ public class TorniqueteFilesGeneratorXML implements TorniqueteFilesGenerator {
 
     /**
      * Genera archivo .CC
+     *
      * @param torniqueteNumberControl
      * @param debitFileNumberControlName
      * @return Ubicacion del archivo .CC
@@ -278,6 +278,7 @@ public class TorniqueteFilesGeneratorXML implements TorniqueteFilesGenerator {
 
     /**
      * Genera nombre de archivo
+     *
      * @param torniquteNumberControl
      * @param prefixFile
      * @param extentionFile
