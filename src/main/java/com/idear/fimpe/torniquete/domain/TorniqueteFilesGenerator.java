@@ -7,7 +7,7 @@ import java.nio.file.Path;
 
 public interface TorniqueteFilesGenerator {
 
-    void generateFiles(TorniquteNumberControl torniqueteNumberControl, PrefixFile prefixFile) throws TorniqueteFilesGeneratorXMLException;
+    void generateFiles(TorniquteNumberControl torniqueteNumberControl) throws TorniqueteFilesGeneratorXMLException;
 
     Path getNumberControlFile();
 

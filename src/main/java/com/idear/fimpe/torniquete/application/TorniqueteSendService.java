@@ -133,7 +133,7 @@ public class TorniqueteSendService {
 
             logger.info("Generando archivo");
 
-            torniqueteFilesGenerator.generateFiles(torniquteNumberControl, PrefixFile.RECHARGE);
+            torniqueteFilesGenerator.generateFiles(torniquteNumberControl);
 
             fimpeCommand.setFileCC(torniqueteFilesGenerator.getNumberControlFile());
             fimpeCommand.setFileDAT(torniqueteFilesGenerator.getDataFile());

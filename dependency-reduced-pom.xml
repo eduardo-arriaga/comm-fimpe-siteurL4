@@ -3,7 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.idear.fimpe</groupId>
   <artifactId>comm-fimpe-L4</artifactId>
-  <version>1.4</version>
+<<<<<<< Updated upstream
+  <version>1.0</version>
+=======
+  <version>1.5</version>
+>>>>>>> Stashed changes
   <build>
     <plugins>
       <plugin>
