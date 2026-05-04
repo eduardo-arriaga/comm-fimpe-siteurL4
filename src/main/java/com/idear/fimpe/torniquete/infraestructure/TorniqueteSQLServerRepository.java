@@ -143,7 +143,7 @@ public class TorniqueteSQLServerRepository implements TorniqueteRepository {
                 "AND FechaHora BETWEEN ? AND ? " +
                 "AND TipoOperacion IN(?, ?) " +
                 "AND estado_respuesta_fimpe  IN(?, ?, ?) " +
-                "AND Clase NOT IN(9, 16, 50)";
+                "AND Clase NOT IN(9, 16, 50, 31)";
 
         List<TorniqueteTransaction> torniqueteTransactionsNonExported = new ArrayList<>();
         try (Connection connection = SQLServerDatabaseConnection.getConnection()) {
