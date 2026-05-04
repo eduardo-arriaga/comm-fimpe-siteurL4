@@ -1,0 +1,28 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+== Envios ==
+
+COMM_BEA -> FIMPE: Envia paquetes de CET
+COMM_BEA -> FIMPE: Envia paquetes de VRT
+COMM_BEA -> FIMPE: Envia paquetes de Torniquetes
+COMM_BEA -> FIMPE: Envia paquetes de Monedas
+COMM_BEA -> FIMPE: Envia paquetes de Kilometros
+COMM_BEA -> FIMPE: Envia paquetes de Contadores
+COMM_BEA -> FIMPE: Envia paquetes de Listas LAM
+COMM_BEA -> FIMPE: Envia paquetes de Recargas remotas
+
+== Acuses ==
+
+COMM_BEA -> COMM_BEA: Espera por N horas para darle tiempo a FIMPE de procesar los paquetes
+    loop 10 veces
+    COMM_BEA -> FIMPE: Solicita acuses de recibo de los paquetes enviados
+    FIMPE --> COMM_BEA: Responde con acuses de recibo de los paquetes
+    COMM_BEA -> COMM_BEA: Procesa los acuses de recibo y actualiza el estado de los paquetes
+    COMM_BEA -> COMM_BEA: Espera por 10 minutos
+    end
+== Reporte ==
+COMM_BEA -> COMM_BEA: Genera reporte de envios y lo envia
+@enduml

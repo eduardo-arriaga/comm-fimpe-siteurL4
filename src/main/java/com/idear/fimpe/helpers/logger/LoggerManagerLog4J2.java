@@ -27,7 +27,7 @@ public class LoggerManagerLog4J2 {
         builder.setConfigurationName("DefaultLogger");
 
         //Nombre del archivo para el rolling file
-        String fileName = "logs/mmp.log";
+        String fileName = "logs/sl4.log";
 
         //Patron del logueo
         String pattern = "%d{dd MMM yyyy HH:mm:ss} %t %-5p %m%n";

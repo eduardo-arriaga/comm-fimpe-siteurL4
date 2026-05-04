@@ -74,7 +74,7 @@ public class ErrorReportService {
     }
 
     private void checkIfThereAreCardErrorsWithoutCatalog(List<ErrorTransaction> errorTransactionList) {
-        String errorDescriptionToCheck = "El campo [c3-Identificador de tarjeta] con valor";
+        String errorDescriptionToCheck = "El campo c3-Identificador de tarjeta con valor";
 
         List<ErrorTransaction> cetTransactions = errorTransactionList
                 .stream()
