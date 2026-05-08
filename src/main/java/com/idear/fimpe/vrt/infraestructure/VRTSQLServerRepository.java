@@ -193,7 +193,7 @@ public class VRTSQLServerRepository implements VRTRepository {
                                 continue;
 
                             vrtTransaction = new VRTTransaction(transactionId, OperationType.getOperationType(operationType),
-                                    transactionDate, serialCard, finalBalance);
+                                    transactionDate, serialCard, finalBalance, fimpeStatus);
 
                             vrtTransactions.add(vrtTransaction);
                         }

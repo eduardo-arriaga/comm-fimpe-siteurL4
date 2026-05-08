@@ -1,0 +1,27 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+switch(Genera un proceso por cada tipo reporte (Paralelo))
+    case(CET)
+        :Extrae la informacion de la base de datos para el CET;
+        :Genera la hoja de excel del CET;
+    case(VRT)
+        :Lo mismo que con el CET;
+    case(Correccion de transacciones)
+        :Consigue la informacion del proceso de envio;
+        :Genera la hoja de excel de correccion de transacciones;
+    case(Errores)
+        switch(Por cada archivo de error genera un proceso (Paralelo))
+            case(Archivo de error 1)
+                :Extrae la informacion del archivo de error;
+                :Extrae informacion de la base de datos de cada error encontrado;
+                :Genera un reporte de errores;
+             case(Archivo de error N)
+                :Lo mismo por cada archivo de error;
+        endswitch
+endswitch
+    :Genera un reporte general con los reportes generados;
+    :Envia el reporte general por correo;
+stop
+@enduml

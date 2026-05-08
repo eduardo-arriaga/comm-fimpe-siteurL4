@@ -1,0 +1,20 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:Espera por N horas para darle tiempo a FIMPE de procesar los paquetes;
+repeat
+    :Solicita acuses de recibo de los paquetes enviados;
+    :Filtra los acuses por tipo (OK, ERR, Listas);
+    :Filtra los acuses OK y ERR por tipo de paquete (CET, VRT...);
+    switch(Genera un proceso para actualizar las transacciones (Paralelo))
+        case(CET)
+            :Actualiza las transacciones de CET;
+            :Corrige las transacciones;
+        case(VRT)
+            :Lo mismo que con el CET;
+    endswitch
+    :Espera por N tiempo;
+repeat while (N veces)
+stop
+@enduml

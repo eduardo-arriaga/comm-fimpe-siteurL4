@@ -63,7 +63,7 @@ public class TorniqueteTransaction {
 
     //Constructor para debitos de QR
     public TorniqueteTransaction(Long transactionId, LocalDateTime transactionDate,
-                                 String serialCard, Float transactionAmmount, Float initialBalance, Float finalBalance) {
+                                 String serialCard, Float transactionAmmount, Float initialBalance, Float finalBalance, FimpeStatus fimpeStatus) {
         this.transactionId = transactionId;
         this.transactionDate = transactionDate;
         //rellena con ceros a la izquierda del valor ajustando 14 caracteres en total
@@ -78,6 +78,7 @@ public class TorniqueteTransaction {
         this.samTransactionCounter = "0";
         this.cardTransactionCounter = transactionId;
         this.debitType = "001";
+        this.fimpeStatus = fimpeStatus;
     }
 
     //Constructor para debitos de tarjeta bancaria

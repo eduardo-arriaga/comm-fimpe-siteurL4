@@ -73,7 +73,7 @@ public class VRTTransaction {
 
     //Utilizado para las recargas QR
     public VRTTransaction(Long transactionId, OperationType operationType, LocalDateTime transactionDate,
-                          String serialCard, Float transactionAmmount) {
+                          String serialCard, Float transactionAmmount, FimpeStatus fimpeStatus) {
         this.transactionId = transactionId;
         this.operationType = operationType;
         this.transactionDate = transactionDate;
@@ -92,6 +92,7 @@ public class VRTTransaction {
             rechargeType = "009";
             transactionFoil = transactionFoil + rechargeType;
         }
+        this.fimpeStatus = fimpeStatus;
     }
 
     /**
