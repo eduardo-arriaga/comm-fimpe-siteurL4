@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 
 public class PropertiesHelper {
-    public static String VERSION = "1.7";
+    public static String VERSION = "1.8";
     public static String PROJECT_NAME = "L4";
     public static String DB_HOST;
     public static String DB_NAME;

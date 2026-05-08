@@ -6,7 +6,7 @@
 
     <groupId>com.idear.fimpe</groupId>
     <artifactId>comm-fimpe-L4</artifactId>
-    <version>1.7</version>
+    <version>1.8</version>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
