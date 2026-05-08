@@ -51,14 +51,21 @@ public class VRTSendService {
             List<VRTNumberControl> vrtNumberControls = vrtRepository.getStations();
             for (VRTNumberControl vrtNumberControl : vrtNumberControls) {
 
-                LocalDateTime dateStartLimitToSearch = DateHelper.convertDateToZeroTime(
-                        vrtRepository.getOldestTransactionDateNonExported(vrtNumberControl.getDeviceId()));
+                LocalDateTime dateFinalLimitToSearch;
+                LocalDateTime dateStartLimitToSearch;
 
-                LocalDateTime dateEndLimitToSearch = DateHelper.getYesterdayMidnight();
+                if (PropertiesHelper.MAKE_SEND_BASED_ON_PERIOD_OF_DATES) {
+                    dateStartLimitToSearch = PropertiesHelper.START_SEND_DATE;
+                    dateFinalLimitToSearch = PropertiesHelper.END_SEND_DATE;
+                } else {
+                    dateFinalLimitToSearch = DateHelper.getYesterdayMidnight();
+                    dateStartLimitToSearch = DateHelper.convertDateToZeroTime(
+                            vrtRepository.getOldestTransactionDateNonExported(vrtNumberControl.getDeviceId()));
+                }
 
                 logger.info("Obteniendo transacciones de la VRT {}", vrtNumberControl.getDeviceId());
                 List<VRTTransaction> vrtTransactions = vrtRepository.getVRTTransactionsNonExported(
-                        vrtNumberControl.getDeviceId(), dateStartLimitToSearch, dateEndLimitToSearch);
+                        vrtNumberControl.getDeviceId(), dateStartLimitToSearch, dateFinalLimitToSearch);
 
                 logger.info("Obtencion de transacciones finalizada");
                 if (!vrtTransactions.isEmpty()) {
@@ -70,7 +77,7 @@ public class VRTSendService {
 
                     if (!vrtTransaccionsNewsOrWithError.isEmpty()) {
                         logger.info("Se encontraron {} transacciones nuevas o con error", vrtTransaccionsNewsOrWithError.size());
-                        makeSent(vrtNumberControl, vrtTransaccionsNewsOrWithError, dateStartLimitToSearch, dateEndLimitToSearch);
+                        makeSent(vrtNumberControl, vrtTransaccionsNewsOrWithError, dateStartLimitToSearch, dateFinalLimitToSearch);
                     }
 
                     List<VRTTransaction> vrtTransaccionsCardOutOfCatalog = vrtTransactions.stream()
@@ -79,7 +86,7 @@ public class VRTSendService {
 
                     if (!vrtTransaccionsCardOutOfCatalog.isEmpty()) {
                         logger.info("Se encontraron {} transacciones con tarjetas fuera de catalogo", vrtTransaccionsCardOutOfCatalog.size());
-                        makeSent(vrtNumberControl, vrtTransaccionsCardOutOfCatalog, dateStartLimitToSearch, dateEndLimitToSearch);
+                        makeSent(vrtNumberControl, vrtTransaccionsCardOutOfCatalog, dateStartLimitToSearch, dateFinalLimitToSearch);
                     }
                 }
             }

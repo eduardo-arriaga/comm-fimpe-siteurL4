@@ -52,13 +52,19 @@ public class CETSendService {
 
     private void executeDebitSends() {
         try {
-            //Sacar el rango de fechas de la fecha actual establecida a menos 1 dia, y a las 11:59:59
-            LocalDateTime dateFinalLimitToSearch = DateHelper.getYesterdayMidnight();
-            //y la fecha de la transaccion mas vieja que no se ha enviado y que pertenezca a una ruta que no sea la default
+            LocalDateTime dateFinalLimitToSearch;
+            LocalDateTime dateStartLimitToSearch;
 
-            LocalDateTime dateStartLimitToSearch =
-                    DateHelper.convertDateToZeroTime(cetRepository.getOldestTransactionDateNonExported(
-                            OperationType.DEBIT_OK_BPD_CET, OperationType.DEBIT_OK_CET));
+            if (PropertiesHelper.MAKE_SEND_BASED_ON_PERIOD_OF_DATES) {
+                dateStartLimitToSearch = PropertiesHelper.START_SEND_DATE;
+                dateFinalLimitToSearch = PropertiesHelper.END_SEND_DATE;
+            } else {
+                dateFinalLimitToSearch = DateHelper.getYesterdayMidnight();
+                dateStartLimitToSearch = DateHelper.convertDateToZeroTime(
+                        cetRepository.getOldestTransactionDateNonExported(
+                                OperationType.DEBIT_OK_BPD_CET,
+                                OperationType.DEBIT_OK_CET));
+            }
 
             logger.info("Obteniendo lista de autobuses");
             List<CETNumberControl> cetNumberControlList =
@@ -148,12 +154,19 @@ public class CETSendService {
 
     private void executeRechargeSends() {
         try {
-            //Sacar el rango de fechas de la fecha actual establecida a menos 1 dia, y a las 11:59:59
-            LocalDateTime dateFinalLimitToSearch = DateHelper.getYesterdayMidnight();
-            //y la fecha de la transaccion mas vieja que no se ha enviado y que pertenezca a una ruta que no sea la default
-            LocalDateTime dateStartLimitToSearch =
-                    DateHelper.convertDateToZeroTime(cetRepository.getOldestTransactionDateNonExported(
-                            OperationType.RECHARGE_OK_CET));
+            LocalDateTime dateFinalLimitToSearch;
+            LocalDateTime dateStartLimitToSearch;
+
+            if (PropertiesHelper.MAKE_SEND_BASED_ON_PERIOD_OF_DATES) {
+                dateStartLimitToSearch = PropertiesHelper.START_SEND_DATE;
+                dateFinalLimitToSearch = PropertiesHelper.END_SEND_DATE;
+            } else {
+                dateFinalLimitToSearch = DateHelper.getYesterdayMidnight();
+                dateStartLimitToSearch =
+                        DateHelper.convertDateToZeroTime(cetRepository.getOldestTransactionDateNonExported(
+                                OperationType.RECHARGE_OK_CET));
+            }
+
             logger.info("Obteniendo lista de autobuses");
             List<CETNumberControl> cetNumberControlList =
                     cetRepository.getBusAndRouteList(dateStartLimitToSearch, dateFinalLimitToSearch);

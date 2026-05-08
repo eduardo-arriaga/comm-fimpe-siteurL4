@@ -16,6 +16,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.util.List;
 
 import static com.idear.fimpe.properties.PropertiesHelper.TECHNOLOGIC_PROVIDER_ID;
@@ -42,20 +43,28 @@ public class CountersSendService {
             logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
             checkIfThereAreTransactionsWithNoAnswer();
 
-            LocalDate yesterday = LocalDate.now().minusDays(1);
-            //La fecha inicial para buscar
-            LocalDateTime starDate = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
-            LocalDateTime endDate = LocalDateTime.of(yesterday, LocalTime.of(23, 59));
+            LocalDateTime dateFinalLimitToSearch;
+            LocalDateTime dateStartLimitToSearch;
 
-            List<CountersNumberControl> countersNumberControlList = countersSQLRepository.getCountersNumberControls(starDate, endDate);
+            if (PropertiesHelper.MAKE_SEND_BASED_ON_PERIOD_OF_DATES) {
+                dateStartLimitToSearch = PropertiesHelper.START_SEND_DATE;
+                dateFinalLimitToSearch = PropertiesHelper.END_SEND_DATE;
+            } else {
+                LocalDateTime now = LocalDateTime.now();
+                dateStartLimitToSearch = LocalDateTime.of(now.getYear(), Month.JANUARY, 1, 0, 0, 0);
+                dateFinalLimitToSearch = now.minusDays(1).withHour(23).withMinute(59).withSecond(59);
+            }
+
+            List<CountersNumberControl> countersNumberControlList =
+                    countersSQLRepository.getCountersNumberControls(dateStartLimitToSearch, dateFinalLimitToSearch);
 
             for (CountersNumberControl countersNumberControl : countersNumberControlList) {
 
                 try {
                     countersNumberControl.setCutId(countersSQLRepository.getCutFolio());
                     countersNumberControl.setCutDate(LocalDateTime.now());
-                    countersNumberControl.setInitialCutDate(starDate);
-                    countersNumberControl.setFinalCutDate(endDate);
+                    countersNumberControl.setInitialCutDate(dateStartLimitToSearch);
+                    countersNumberControl.setFinalCutDate(dateFinalLimitToSearch);
                     countersNumberControl.setTechnologicalProvider(TECHNOLOGIC_PROVIDER_ID);
                     countersNumberControl.calculate();
 

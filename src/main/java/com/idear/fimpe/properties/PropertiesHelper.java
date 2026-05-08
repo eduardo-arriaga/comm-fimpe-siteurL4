@@ -4,6 +4,8 @@ import com.idear.fimpe.helpers.encryption.RC4;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 
 public class PropertiesHelper {
@@ -23,6 +25,9 @@ public class PropertiesHelper {
     public static int MAX_TRANSACTIONS_PER_FILE = 1000;
     public static int WAIT_TIME_TO_DOWNLOAD;
     public static int DAYS_TO_CONSIDER_NO_ANSWER = 5;
+    public static boolean MAKE_SEND_BASED_ON_PERIOD_OF_DATES;
+    public static LocalDateTime START_SEND_DATE;
+    public static LocalDateTime END_SEND_DATE;
 
     public static void loadProperties(String configPathFile) throws IOException {
         Properties properties = new Properties();
@@ -46,6 +51,20 @@ public class PropertiesHelper {
         DOWNLOAD_ATTEMPTS = Integer.parseInt(properties.getProperty(PropertiesApp.DOWNLOAD_ATTEMPTS.name(), "10").trim());
         WAIT_TIME_TO_DOWNLOAD = Integer.parseInt(properties.getProperty(PropertiesApp.WAIT_TIME_TO_DOWNLOAD.name(), "2"));
         DAYS_TO_CONSIDER_NO_ANSWER = Integer.parseInt(properties.getProperty(PropertiesApp.DAYS_TO_CONSIDER_NO_ANSWER.name(), "7").trim());
+
+        MAKE_SEND_BASED_ON_PERIOD_OF_DATES = Boolean.parseBoolean(properties.getProperty(PropertiesApp.MAKE_SEND_BASED_ON_PERIOD_OF_DATES.name(), "false").trim());
+
+        if (MAKE_SEND_BASED_ON_PERIOD_OF_DATES) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+            try {
+                START_SEND_DATE = LocalDateTime.parse(properties.getProperty(PropertiesApp.START_SEND_DATE.name(), "").trim(), formatter);
+                END_SEND_DATE = LocalDateTime.parse(properties.getProperty(PropertiesApp.END_SEND_DATE.name(), "").trim(), formatter);
+            } catch (Exception e) {
+                LocalDateTime now = LocalDateTime.now();
+                START_SEND_DATE = LocalDateTime.of(now.getYear(), now.getMonthValue(), 1, 0, 0, 0);
+                END_SEND_DATE = LocalDateTime.of(now.getYear(), now.getMonthValue(), now.getMonth().maxLength(), 23, 59, 59);
+            }
+        }
     }
 
     //Nombre de las propiedades en el archivo
@@ -61,6 +80,9 @@ public class PropertiesHelper {
         TECHNOLOGIC_PROVIDER_ID,
         DOWNLOAD_ATTEMPTS,
         WAIT_TIME_TO_DOWNLOAD,
-        DAYS_TO_CONSIDER_NO_ANSWER;
+        DAYS_TO_CONSIDER_NO_ANSWER,
+        MAKE_SEND_BASED_ON_PERIOD_OF_DATES,
+        START_SEND_DATE,
+        END_SEND_DATE,
     }
 }

@@ -93,7 +93,7 @@ public class ErrorReportService {
                         errorTransaction.getErrorDescription().startsWith(errorDescriptionToCheck) && errorTransaction.isStationTransaction())
                 .collect(Collectors.toList());
 
-        if(!cetTransactions.isEmpty()){
+        if(!stationTransactions.isEmpty()){
             logger.warn("Se encontraron {} errores de tarjeta fuera de catalogo en archivos de Estacion", stationTransactions.size());
             errorRepository.updateStationTransacctionsWithCardErrorWithoutCatalog(stationTransactions);
         }

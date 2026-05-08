@@ -1,0 +1,45 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+:Genera un proceso por cada tipo de envio;
+    fork
+    :Envios del CET;
+    :Consigue todas las rutas que se envian a FIMPE;
+    fork
+       :Ruta 1;
+       :Verifica transacciones pendientes de acusar;
+       :Consigue todos los autobuses;
+       fork
+        :Autobus 1;
+        :Obtiene las transacciones;
+        :Genera los archivos;
+        :Actualiza el registro general;
+           fork again
+             :Autobus N;
+             :Obtiene las transacciones;
+             :Genera los archivos;
+             :Actualiza el registro general;
+           end fork
+    fork again
+         :Ruta N;
+         :Verifica transacciones pendientes de acusar;
+         :Consigue todos los autobuses;
+    end fork
+
+    fork again
+        :Envios del VRT;
+    end fork
+
+:Se ejecuta el proceso de envio con la herramienta de FIMPE;
+fork
+    :Par enviado 1;
+    :Actualizar la base de datos;
+fork again
+    :Par enviado N;
+    :Actualizar la base de datos;
+end fork
+:Se envia el correo de envios;
+stop
+@enduml

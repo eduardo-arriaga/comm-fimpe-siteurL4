@@ -1,0 +1,34 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+switch(Genera un proceso por cada tipo de envio)
+    case(CET)
+    :Consigue todas las rutas que se envian a FIMPE;
+    switch(Genera un proceso por cada ruta (Paralelo))
+       case(Ruta 1)
+       :Verifica transacciones pendientes de acusar;
+       :Consigue todos los autobuses;
+       switch(Genera un proceso por cada autobus (Paralelo))
+            case(Autobus 1)
+            :Obtiene las transacciones;
+            :Genera los archivos;
+            :Actualiza el registro general;
+            case(Autobus N)
+            :Obtiene las transacciones;
+            :Genera los archivos;
+            :Actualiza el registro general;
+            endswitch
+       case(Ruta N)
+         :Lo mismo por cada ruta;
+    endswitch
+    case(VRT)
+        :Lo mismo por cada tipo envio;
+ endswitch
+
+:Se ejecuta el proceso de envio con la herramienta de FIMPE;
+:Se genera un proceso por cada par enviado para actualizar la base de datos (Paralelo);
+:Se envia el correo de envios;
+stop
+@enduml

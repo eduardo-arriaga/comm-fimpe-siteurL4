@@ -16,6 +16,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.util.List;
 
 import static com.idear.fimpe.properties.PropertiesHelper.TECHNOLOGIC_PROVIDER_ID;
@@ -43,21 +44,28 @@ public class KilometersSendService {
 
             logger.info("Iniciando proceso de revision de transacciones no pendientes de contestar");
             checkIfThereAreTransactionsWithNoAnswer();
-            //La fecha inicial para buscar
-            LocalDate yesterday = LocalDate.now().minusDays(1);
-            LocalDateTime starDate = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
-            LocalDateTime endDate = LocalDateTime.of(yesterday, LocalTime.of(23, 59));
+            LocalDateTime dateFinalLimitToSearch;
+            LocalDateTime dateStartLimitToSearch;
+
+            if (PropertiesHelper.MAKE_SEND_BASED_ON_PERIOD_OF_DATES) {
+                dateStartLimitToSearch = PropertiesHelper.START_SEND_DATE;
+                dateFinalLimitToSearch = PropertiesHelper.END_SEND_DATE;
+            } else {
+                LocalDateTime now = LocalDateTime.now();
+                dateStartLimitToSearch = LocalDateTime.of(now.getYear(), Month.JANUARY, 1, 0, 0, 0);
+                dateFinalLimitToSearch = now.minusDays(1).withHour(23).withMinute(59).withSecond(59);
+            }
 
             List<KilometersNumberControl> kilometersNumberControlList =
-                    kilometersSQLRepository.getKilometersNumberControls(starDate, endDate);
+                    kilometersSQLRepository.getKilometersNumberControls(dateStartLimitToSearch, dateFinalLimitToSearch);
 
             for (KilometersNumberControl kilometersNumberControl : kilometersNumberControlList) {
 
                 try {
                     kilometersNumberControl.setCutId(kilometersSQLRepository.getCutFolio());
                     kilometersNumberControl.setCutDate(LocalDateTime.now());
-                    kilometersNumberControl.setInitialCutDate(starDate);
-                    kilometersNumberControl.setFinalCutDate(endDate);
+                    kilometersNumberControl.setInitialCutDate(dateStartLimitToSearch);
+                    kilometersNumberControl.setFinalCutDate(dateFinalLimitToSearch);
                     kilometersNumberControl.setTechnologicalProvider(TECHNOLOGIC_PROVIDER_ID);
                     kilometersNumberControl.calculate();
 

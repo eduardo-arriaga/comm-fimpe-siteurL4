@@ -177,7 +177,7 @@ public class TorniqueteSQLServerRepository implements TorniqueteRepository {
                             String idHoozie = resultSet.getString("idHoozie");
 
                             TorniqueteTransaction transaction = new TorniqueteTransaction(transactionId, transactionDate,
-                                    idHoozie, transactionAmmount, initalBalance, finalBalance);
+                                    idHoozie, transactionAmmount, initalBalance, finalBalance, fimpeStatus);
 
                             torniqueteTransactionsNonExported.add(transaction);
 
