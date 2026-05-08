@@ -72,15 +72,20 @@ public class TorniqueteSendService {
             //Obtener lista de dispositivos con su estacion correspondiente
             List<TorniquteNumberControl> torniquteNumberControls = torniqueteRepository.getTorniqueteDevices();
 
-            // Fecha actual establecida a menos 1 dia, y a las 11:59:59.
-            LocalDateTime dateEndLimitToSearch = DateHelper.getYesterdayMidnight();
+            LocalDateTime dateFinalLimitToSearch;
+            LocalDateTime dateStartLimitToSearch;
 
-            //Fecha de la transaccion mas vieja que no se ha enviado de Torniquetes.
-            LocalDateTime dateStartLimitToSearch = DateHelper.convertDateToZeroTime(
-                    torniqueteRepository.getOldestTransactionDateNonExported(
-                            OperationType.DEBIT_OK_TORNIQUETE,
-                            OperationType.DEBIT_OK_GARITA,
-                            OperationType.DEBIT_QR_OK_TORNIQUETE));
+            if (PropertiesHelper.MAKE_SEND_BASED_ON_PERIOD_OF_DATES) {
+                dateStartLimitToSearch = PropertiesHelper.START_SEND_DATE;
+                dateFinalLimitToSearch = PropertiesHelper.END_SEND_DATE;
+            } else {
+                dateFinalLimitToSearch = DateHelper.getYesterdayMidnight();
+                dateStartLimitToSearch = DateHelper.convertDateToZeroTime(
+                        torniqueteRepository.getOldestTransactionDateNonExported(
+                                OperationType.DEBIT_OK_TORNIQUETE,
+                                OperationType.DEBIT_OK_GARITA,
+                                OperationType.DEBIT_QR_OK_TORNIQUETE));
+            }
 
             //Ciclo de trabajo para cada elemento de la lista de dispositivos torniquteNumberControl.
             for (TorniquteNumberControl torniquteNumberControl : torniquteNumberControls) {
@@ -90,7 +95,7 @@ public class TorniqueteSendService {
                 List<TorniqueteTransaction> torniqueteTransactionNonExportedList = torniqueteRepository.getNonExportedTransaction(
                         torniquteNumberControl.getDeviceId(),
                         dateStartLimitToSearch,
-                        dateEndLimitToSearch);
+                        dateFinalLimitToSearch);
                 logger.info("Finaliza la obtencion de transacciones");
 
                 if (!torniqueteTransactionNonExportedList.isEmpty()) {
@@ -101,7 +106,7 @@ public class TorniqueteSendService {
 
                     if (!torniqueteTransaccionsNewsOrWithError.isEmpty()) {
                         logger.info("Se encontraron {} transacciones nuevas o con error", torniqueteTransaccionsNewsOrWithError.size());
-                        makeSent(torniquteNumberControl, torniqueteTransaccionsNewsOrWithError, dateStartLimitToSearch, dateEndLimitToSearch);
+                        makeSent(torniquteNumberControl, torniqueteTransaccionsNewsOrWithError, dateStartLimitToSearch, dateFinalLimitToSearch);
                     }
 
                     List<TorniqueteTransaction> torniqueteTransaccionsCardOutOfCatalog = torniqueteTransactionNonExportedList.stream()
@@ -110,7 +115,7 @@ public class TorniqueteSendService {
 
                     if (!torniqueteTransaccionsCardOutOfCatalog.isEmpty()) {
                         logger.info("Se encontraron {} transacciones con tarjetas fuera de catalogo", torniqueteTransaccionsCardOutOfCatalog.size());
-                        makeSent(torniquteNumberControl, torniqueteTransaccionsCardOutOfCatalog, dateStartLimitToSearch, dateEndLimitToSearch);
+                        makeSent(torniquteNumberControl, torniqueteTransaccionsCardOutOfCatalog, dateStartLimitToSearch, dateFinalLimitToSearch);
                     }
                 }
             }
